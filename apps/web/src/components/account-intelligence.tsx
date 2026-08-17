@@ -2,6 +2,7 @@ import { ArrowSquareOut, CalendarBlank, ChartLineUp, CheckCircle, CurrencyDollar
 
 import type { AccountIntelligenceDTO } from "@/types/account";
 import { OutreachDrafts } from "@/components/outreach-drafts";
+import { AccountTasks } from "@/components/account-tasks";
 
 function money(value: number | null) {
   if (value === null) return "Not set";
@@ -45,6 +46,7 @@ export function AccountIntelligence({ account }: { account: AccountIntelligenceD
         </aside>
       </div>
       <OutreachDrafts accountId={account.id} initialDrafts={account.outreachDrafts} />
+      <AccountTasks accountId={account.id} tasks={account.tasks} />
     </div>
   );
 }
