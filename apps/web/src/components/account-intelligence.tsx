@@ -1,6 +1,7 @@
 import { ArrowSquareOut, CalendarBlank, ChartLineUp, CheckCircle, CurrencyDollar, Globe, Lightning, Target, UserCircle } from "@phosphor-icons/react/dist/ssr";
 
 import type { AccountIntelligenceDTO } from "@/types/account";
+import { OutreachDrafts } from "@/components/outreach-drafts";
 
 function money(value: number | null) {
   if (value === null) return "Not set";
@@ -43,6 +44,7 @@ export function AccountIntelligence({ account }: { account: AccountIntelligenceD
           <section className="intelligence-panel"><header><div><p>Audit trail</p><h3>Recent activity</h3></div><span>{account.activities.length}</span></header>{account.activities.length ? <ol className="activity-list">{account.activities.map((activity) => <li key={activity.id}><CheckCircle size={17} /><div><strong>{label(activity.eventType)}</strong><span>{activity.actorEmail}</span><small>{date(activity.occurredAt)}</small></div></li>)}</ol> : <p className="panel-empty">Activity events will appear here as work progresses.</p>}</section>
         </aside>
       </div>
+      <OutreachDrafts accountId={account.id} initialDrafts={account.outreachDrafts} />
     </div>
   );
 }

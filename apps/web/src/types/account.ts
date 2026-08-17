@@ -49,4 +49,12 @@ export type AccountIntelligenceDTO = {
     details: Record<string, unknown>;
     occurredAt: string;
   }>;
+  outreachDrafts: Array<{
+    id: string;
+    subject: string;
+    body: string;
+    status: "draft" | "archived";
+    generatedByEmail: string;
+    createdAt: string;
+  }>;
 };
