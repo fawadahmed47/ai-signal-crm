@@ -28,10 +28,10 @@ pnpm.cmd db:migrate
 pnpm.cmd dev
 ```
 
-If `py` is unavailable but the original pipeline environment exists, create the isolated environment with:
+If the Windows `py` launcher is unavailable, use any installed Python 3.10-or-newer executable:
 
 ```powershell
-& "C:\Users\USER1\Downloads\data_center_project_tracker\data_center_intelligence\.venv\Scripts\python.exe" -m venv .venv
+python -m venv .venv
 ```
 
 Use `pnpm.cmd` in Windows PowerShell when its script policy blocks `pnpm.ps1`.
@@ -46,11 +46,18 @@ Use `pnpm.cmd` in Windows PowerShell when its script policy blocks `pnpm.ps1`.
 
 | Variable | Required | Owner | Notes |
 | --- | --- | --- | --- |
+| `NODE_ENV` | Yes | Web | Runtime mode; use `development` locally |
 | `APP_URL` | Yes | Web | Public base URL |
 | `DATABASE_URL` | Yes | Platform | PostgreSQL connection string; secret outside local development |
+| `POSTGRES_DB` | Yes | Platform | Local container database name |
+| `POSTGRES_USER` | Yes | Platform | Local container database user |
+| `POSTGRES_PASSWORD` | Yes | Platform | Local-only default; managed as a secret outside development |
+| `POSTGRES_PORT` | Yes | Platform | Local host port mapped to PostgreSQL |
 | `NER_MODEL` | Yes | AI | Ollama model identifier |
 | `OLLAMA_HOST` | Yes | AI/Platform | AI runtime endpoint |
 | `SIGNAL_SOURCE_RSS` | Yes | AI | Initial market-signal source |
+| `SIGNAL_SOURCE_NAME` | Yes | AI | Stable display name used when upserting the source |
+| `INGESTION_OUTPUTS` | Yes | AI | Comma-separated enabled sinks, such as `postgres,csv` |
 | `SALESFORCE_*` | No | Integration | Only needed when the Salesforce adapter is enabled |
 
 ## Verification
@@ -65,3 +72,5 @@ pnpm.cmd db:migrate
 ```
 
 The web health check is available at `http://localhost:3000/api/health`. The migration command is idempotent and must succeed before review when a database migration changes.
+
+The preflight checks whether required command-line tools can run. Docker Desktop must also show a running engine before starting PostgreSQL; verify that separately with `docker info` if `db:up` cannot connect.
