@@ -11,7 +11,7 @@ The original runtime artifacts were intentionally excluded:
 
 ## Signal contract
 
-Every successful extraction is converted to `SignalContract` version `1.2` before database persistence. The contract maps legacy extraction fields to CRM concepts:
+Every successful extraction is converted to `SignalContract` version `1.3` before database persistence. The contract maps legacy extraction fields to CRM concepts:
 
 | Extraction field | CRM field |
 | --- | --- |
@@ -42,6 +42,16 @@ Every non-error signal receives a deterministic advisory score from 0 to 100. Sc
 | Evidence completeness | 20 | URL, company, publication date, location, and title |
 
 The total is stored in `signals.opportunity_score`. Its version and component breakdown are retained in `signals.raw_payload`, allowing a score to be reproduced and audited. Recency is not included because the review queue already sorts by import time; this keeps reprocessing deterministic. Scores prioritize human review and never approve or mutate CRM records automatically.
+
+## Evidence-based explanations
+
+Explanation version `1.0` creates a review-ready narrative from the same extracted facts and scoring components. Each explanation explicitly separates:
+
+- **Evidence** — headline, company, category, quantified investment or capacity, location, publication date, and retained source URL when available.
+- **Score** — the total and contribution from every documented scoring component.
+- **Commercial interpretation** — a category-level reason the signal may warrant review, clearly labeled as interpretation rather than source fact.
+
+Missing values are omitted rather than inferred. The explanation is stored in `signals.score_explanation`; its version and structured fact list are retained in `signals.raw_payload`. Every explanation ends with a reminder to review the source before taking CRM action.
 
 ## Install
 
