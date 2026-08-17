@@ -19,6 +19,8 @@ jobs:
     name: Web quality gates
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      TEST_DATABASE_URL: postgresql://signal_crm:signal_crm@localhost:5432/signal_crm
 
     steps:
       - name: Check out repository
@@ -35,6 +37,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Start PostgreSQL
+        run: docker compose up --detach postgres
+
+      - name: Apply database migrations
+        run: docker compose --profile tools run --rm migrate
+
       - name: Type-check
         run: pnpm typecheck
 
@@ -46,6 +54,14 @@ jobs:
 
       - name: Build production application
         run: pnpm build
+
+      - name: Show PostgreSQL logs after failure
+        if: failure()
+        run: docker compose logs postgres
+
+      - name: Stop test services
+        if: always()
+        run: docker compose down --volumes
 
   ingestion:
     name: Ingestion and PostgreSQL quality gates

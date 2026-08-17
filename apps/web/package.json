@@ -8,20 +8,23 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "tsx --test"
   },
   "dependencies": {
     "@phosphor-icons/react": "2.1.10",
     "next": "16.3.1",
+    "pg": "8.22.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@types/node": "24.10.0",
+    "@types/pg": "8.20.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "eslint": "9.39.1",
     "eslint-config-next": "16.3.1",
+    "tsx": "4.23.1",
     "typescript": "5.9.3"
   }
 }

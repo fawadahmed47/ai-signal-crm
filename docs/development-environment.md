@@ -49,6 +49,7 @@ Use `pnpm.cmd` in Windows PowerShell when its script policy blocks `pnpm.ps1`.
 | `NODE_ENV` | Yes | Web | Runtime mode; use `development` locally |
 | `APP_URL` | Yes | Web | Public base URL |
 | `DATABASE_URL` | Yes | Platform | PostgreSQL connection string; secret outside local development |
+| `REVIEWER_EMAIL` | Yes | Web | Server-controlled reviewer identity until authentication is introduced |
 | `POSTGRES_DB` | Yes | Platform | Local container database name |
 | `POSTGRES_USER` | Yes | Platform | Local container database user |
 | `POSTGRES_PASSWORD` | Yes | Platform | Local-only default; managed as a secret outside development |
