@@ -75,7 +75,7 @@ class PostgresIntegrationTests(unittest.TestCase):
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT s.investment_usd_millions, s.raw_payload,
+                    SELECT s.investment_usd_millions, s.opportunity_score, s.raw_payload,
                            (SELECT count(*) FROM signal_evidence e WHERE e.signal_id = s.id),
                            (SELECT count(*) FROM companies c
                             WHERE c.normalized_name = 'ascrm 30 verification')
@@ -89,12 +89,14 @@ class PostgresIntegrationTests(unittest.TestCase):
 
         self.assertEqual(len(records), 1)
         self.assertEqual(float(records[0][0]), 125.0)
-        payload = records[0][1]
+        self.assertEqual(records[0][1], 68)
+        payload = records[0][2]
         if isinstance(payload, str):
             payload = json.loads(payload)
-        self.assertEqual(payload["version"], "1.1")
-        self.assertEqual(records[0][2], 1)
+        self.assertEqual(payload["version"], "1.2")
+        self.assertEqual(payload["score_version"], "1.0")
         self.assertEqual(records[0][3], 1)
+        self.assertEqual(records[0][4], 1)
 
 
 if __name__ == "__main__":

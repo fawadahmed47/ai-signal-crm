@@ -34,7 +34,17 @@ class SignalContractTests(unittest.TestCase):
         self.assertEqual(contract.power_capacity_mw, 120.0)
         self.assertEqual(contract.investment_usd_millions, 450.0)
         self.assertEqual(contract.published_at.isoformat(), "2026-08-15T00:00:00+00:00")
-        self.assertEqual(contract.raw_payload["contract_version"], "1.1")
+        self.assertEqual(contract.opportunity_score, 84)
+        self.assertEqual(
+            contract.score_components,
+            {
+                "category": 30,
+                "investment": 18,
+                "power_capacity": 16,
+                "evidence_completeness": 20,
+            },
+        )
+        self.assertEqual(contract.raw_payload["contract_version"], "1.2")
 
     def test_creates_stable_fallback_external_id(self) -> None:
         row = {"news_title": "No URL signal", "publish_date": "15 Aug 2026"}
@@ -48,8 +58,10 @@ class SignalContractTests(unittest.TestCase):
             {"news_title": "Serializable", "link": "https://example.com/1"}
         )
         payload = json.loads(contract.json_payload())
-        self.assertEqual(payload["version"], "1.1")
+        self.assertEqual(payload["version"], "1.2")
         self.assertEqual(payload["evidence_url"], "https://example.com/1")
+        self.assertEqual(payload["score_version"], "1.0")
+        self.assertEqual(payload["opportunity_score"], 22)
 
 
 if __name__ == "__main__":
