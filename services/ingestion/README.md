@@ -11,7 +11,7 @@ The original runtime artifacts were intentionally excluded:
 
 ## Signal contract
 
-Every successful extraction is converted to `SignalContract` version `1.0` before database persistence. The contract maps legacy extraction fields to CRM concepts:
+Every successful extraction is converted to `SignalContract` version `1.1` before database persistence. The contract maps legacy extraction fields to CRM concepts:
 
 | Extraction field | CRM field |
 | --- | --- |
@@ -23,6 +23,12 @@ Every successful extraction is converted to `SignalContract` version `1.0` befor
 | city/state/country | `signals.location_text` |
 
 The complete versioned contract is retained in `signals.raw_payload`. Reprocessing the same feed URL updates extracted fields without changing human review status.
+
+## Company identity
+
+Company names are converted to conservative identity keys before persistence. Case, Unicode presentation, punctuation, ampersands, a leading `The`, and common trailing legal suffixes are normalized. For example, `Acme Data, Inc.` and `The ACME Data Corporation` resolve to one company. Fuzzy matching is intentionally excluded because it could silently merge unrelated organizations.
+
+PostgreSQL stores the resolved identity in `companies.normalized_name` and maintains matching keys in `company_aliases`. Company resolution is an atomic upsert, so concurrent ingestion cannot create duplicates for the same identity. The original extracted name remains available in the versioned raw signal payload for auditability.
 
 ## Install
 

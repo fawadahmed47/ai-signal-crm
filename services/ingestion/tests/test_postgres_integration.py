@@ -46,8 +46,8 @@ class PostgresIntegrationTests(unittest.TestCase):
                     (self.source_name, self.source_url),
                 )
                 cursor.execute(
-                    "DELETE FROM companies WHERE normalized_name = %s",
-                    ("ascrm 30 verification corp",),
+                    "DELETE FROM companies WHERE normalized_name IN (%s, %s)",
+                    ("ascrm 30 verification", "ascrm 30 verification corp"),
                 )
 
     def test_reprocessing_updates_one_signal_and_one_evidence_record(self) -> None:
@@ -68,6 +68,7 @@ class PostgresIntegrationTests(unittest.TestCase):
 
         self.assertEqual(sink.write([row]), 1)
         row["investment_usd_m"] = 125
+        row["provider_name"] = "The ASCRM-30 Verification Corporation"
         self.assertEqual(sink.write([row]), 1)
 
         with self.psycopg.connect(self.database_url) as connection:
@@ -75,7 +76,9 @@ class PostgresIntegrationTests(unittest.TestCase):
                 cursor.execute(
                     """
                     SELECT s.investment_usd_millions, s.raw_payload,
-                           (SELECT count(*) FROM signal_evidence e WHERE e.signal_id = s.id)
+                           (SELECT count(*) FROM signal_evidence e WHERE e.signal_id = s.id),
+                           (SELECT count(*) FROM companies c
+                            WHERE c.normalized_name = 'ascrm 30 verification')
                     FROM signals s
                     JOIN signal_sources source ON source.id = s.source_id
                     WHERE source.name = %s AND source.source_url = %s
@@ -89,8 +92,9 @@ class PostgresIntegrationTests(unittest.TestCase):
         payload = records[0][1]
         if isinstance(payload, str):
             payload = json.loads(payload)
-        self.assertEqual(payload["version"], "1.0")
+        self.assertEqual(payload["version"], "1.1")
         self.assertEqual(records[0][2], 1)
+        self.assertEqual(records[0][3], 1)
 
 
 if __name__ == "__main__":
