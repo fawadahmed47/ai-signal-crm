@@ -21,7 +21,7 @@ const navigation = [
   { label: "Accounts", icon: Buildings, href: "/accounts" },
   { label: "Opportunities", icon: Target, href: "/opportunities" },
   { label: "Tasks", icon: CheckSquare },
-  { label: "Reports", icon: ChartBar },
+  { label: "Reports", icon: ChartBar, href: "/reports" },
   { label: "Settings", icon: Gear },
 ];
 
