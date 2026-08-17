@@ -4,3 +4,4 @@ feedparser
 beautifulsoup4
 readability-lxml
 cloudscraper
+psycopg[binary]>=3.2,<4
