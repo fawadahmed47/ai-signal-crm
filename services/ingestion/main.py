@@ -19,13 +19,12 @@ Features:
 from __future__ import annotations
 
 import concurrent.futures
-import csv
 import os
 import pathlib
 import re
 import time
 from datetime import datetime
-from typing import Dict, List
+from typing import Callable, Dict, List
 
 os.environ["TRANSFORMERS_NO_TF"] = "1"
 os.environ["TRANSFORMERS_NO_KERAS"] = "1"
@@ -33,6 +32,7 @@ os.environ["TRANSFORMERS_NO_KERAS"] = "1"
 import article_fetcher
 import collector
 import ner_normalizer
+from sinks import CsvSignalSink, PostgresSignalSink, SignalSink
 
 MAX_ATTEMPTS = 2
 DELAY_BETWEEN_ATTEMPTS = 1
@@ -164,7 +164,6 @@ def process_article(link: Dict) -> List[Dict]:
                 "green" if row.get("category") != "error" else "yellow",
             )
 
-        collector.mark_processed([link["url"]])
         return rows
     except Exception as exc:
         log_message(f"[NER ERROR] {link['url']}: {exc}", "red")
@@ -185,16 +184,72 @@ def process_article(link: Dict) -> List[Dict]:
 
 
 def write_results(rows: List[Dict]) -> None:
-    file_exists = OUTPUT_FILE.exists()
+    """Backward-compatible CSV adapter entry point."""
+    normalized_rows = []
+    for row in rows:
+        normalized = dict(row)
+        normalized["publish_date"] = normalize_date(row.get("publish_date", ""))
+        normalized_rows.append(normalized)
+    CsvSignalSink(OUTPUT_FILE, CSV_FIELDS).write(normalized_rows)
 
-    with OUTPUT_FILE.open("a", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=CSV_FIELDS)
-        if not file_exists:
-            writer.writeheader()
 
-        for row in rows:
-            row["publish_date"] = normalize_date(row.get("publish_date", ""))
-            writer.writerow({field: row.get(field) for field in CSV_FIELDS})
+def build_sinks() -> List[SignalSink]:
+    configured = {
+        value.strip().lower()
+        for value in os.getenv("INGESTION_OUTPUTS", "postgres,csv").split(",")
+        if value.strip()
+    }
+    unknown = configured - {"postgres", "csv"}
+    if unknown:
+        raise ValueError(f"Unsupported INGESTION_OUTPUTS: {', '.join(sorted(unknown))}")
+
+    sinks: List[SignalSink] = []
+    if "postgres" in configured:
+        sinks.append(
+            PostgresSignalSink(
+                database_url=os.getenv("DATABASE_URL", ""),
+                source_name=os.getenv("SIGNAL_SOURCE_NAME", "Data Center Dynamics"),
+                source_url=os.getenv(
+                    "SIGNAL_SOURCE_RSS",
+                    "https://www.datacenterdynamics.com/en/rss/",
+                ),
+            )
+        )
+    if "csv" in configured:
+        sinks.append(CsvSignalSink(OUTPUT_FILE, CSV_FIELDS))
+    if not sinks:
+        raise ValueError("INGESTION_OUTPUTS must enable at least one output adapter")
+    return sinks
+
+
+def persist_results(rows: List[Dict], sinks: List[SignalSink]) -> None:
+    normalized_rows: List[Dict] = []
+    for row in rows:
+        normalized = dict(row)
+        normalized["publish_date"] = normalize_date(row.get("publish_date", ""))
+        normalized_rows.append(normalized)
+
+    for sink in sinks:
+        written = sink.write(normalized_rows)
+        log_message(f"{type(sink).__name__} accepted {written} rows", "green")
+
+
+def persist_and_mark_processed(
+    rows: List[Dict],
+    sinks: List[SignalSink],
+    mark_processed: Callable[[List[str]], None] = collector.mark_processed,
+) -> List[str]:
+    """Persist all configured outputs before advancing collector state."""
+    persist_results(rows, sinks)
+    successful_urls = sorted(
+        {
+            str(row["link"])
+            for row in rows
+            if row.get("link") and row.get("category") != "error"
+        }
+    )
+    mark_processed(successful_urls)
+    return successful_urls
 
 
 def analyze_results(rows: List[Dict]) -> None:
@@ -265,8 +320,8 @@ def main() -> None:
                         "red",
                     )
 
-        log_message("Writing results to CSV...", "blue")
-        write_results(all_rows)
+        log_message("Persisting extracted signals...", "blue")
+        persist_and_mark_processed(all_rows, build_sinks())
         analyze_results(all_rows)
 
         elapsed = time.time() - start_time
