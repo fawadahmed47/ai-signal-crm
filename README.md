@@ -39,6 +39,7 @@ The web application is available at `http://localhost:3000`. Its health endpoint
 - No secrets or runtime data are committed.
 - Every change references its Jira key.
 - Production builds and automated checks must pass before review.
+- GitHub Actions enforces web checks and ingestion tests against migrated PostgreSQL.
 - AI-generated CRM changes require explicit human approval.
 
 See [the architecture overview](docs/architecture/overview.md) for system boundaries and data flow.
