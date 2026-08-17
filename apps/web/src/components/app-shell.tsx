@@ -18,7 +18,7 @@ import { useState } from "react";
 
 const navigation = [
   { label: "Inbox", icon: Tray, href: "/" },
-  { label: "Accounts", icon: Buildings },
+  { label: "Accounts", icon: Buildings, href: "/accounts" },
   { label: "Opportunities", icon: Target, href: "/opportunities" },
   { label: "Tasks", icon: CheckSquare },
   { label: "Reports", icon: ChartBar },

@@ -1,0 +1,170 @@
+import "server-only";
+
+import { getDatabasePool } from "@/data/db";
+import type { AccountIntelligenceDTO, AccountListDTO } from "@/types/account";
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export async function getAccounts(): Promise<AccountListDTO[]> {
+  const result = await getDatabasePool().query<{
+    id: string;
+    company_name: string;
+    website: string | null;
+    country_code: string | null;
+    owner_email: string;
+    lifecycle_stage: string;
+    opportunity_count: string;
+    pipeline_value: string;
+    latest_signal_at: Date | null;
+  }>(
+    `WITH opportunity_summary AS (
+       SELECT account_id, count(*) AS opportunity_count,
+              COALESCE(sum(amount_usd), 0) AS pipeline_value
+       FROM opportunities GROUP BY account_id
+     ), signal_summary AS (
+       SELECT company_id, max(imported_at) AS latest_signal_at
+       FROM signals GROUP BY company_id
+     )
+     SELECT a.id::text, c.canonical_name AS company_name, c.website, c.country_code,
+            a.owner_email, a.lifecycle_stage,
+            COALESCE(o.opportunity_count, 0)::text AS opportunity_count,
+            COALESCE(o.pipeline_value, 0)::text AS pipeline_value,
+            s.latest_signal_at
+     FROM accounts a
+     JOIN companies c ON c.id = a.company_id
+     LEFT JOIN opportunity_summary o ON o.account_id = a.id
+     LEFT JOIN signal_summary s ON s.company_id = c.id
+     ORDER BY a.updated_at DESC, c.canonical_name`,
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    companyName: row.company_name,
+    website: row.website,
+    countryCode: row.country_code,
+    ownerEmail: row.owner_email,
+    lifecycleStage: row.lifecycle_stage,
+    opportunityCount: Number(row.opportunity_count),
+    pipelineValue: Number(row.pipeline_value),
+    latestSignalAt: row.latest_signal_at?.toISOString() ?? null,
+  }));
+}
+
+export async function getAccountIntelligence(id: string): Promise<AccountIntelligenceDTO | null> {
+  if (!UUID_PATTERN.test(id)) return null;
+  const pool = getDatabasePool();
+  const accountResult = await pool.query<{
+    id: string;
+    company_id: string;
+    company_name: string;
+    website: string | null;
+    country_code: string | null;
+    owner_email: string;
+    lifecycle_stage: string;
+    created_at: Date;
+    created_from_signal_id: string | null;
+  }>(
+    `SELECT a.id::text, a.company_id::text, c.canonical_name AS company_name,
+            c.website, c.country_code, a.owner_email, a.lifecycle_stage,
+            a.created_at, a.created_from_signal_id::text
+     FROM accounts a
+     JOIN companies c ON c.id = a.company_id
+     WHERE a.id = $1`,
+    [id],
+  );
+  if (!accountResult.rowCount) return null;
+  const account = accountResult.rows[0];
+
+  const [signals, opportunities, activities] = await Promise.all([
+    pool.query<{
+      id: string;
+      title: string;
+      category: string;
+      summary: string;
+      status: string;
+      opportunity_score: number | null;
+      score_explanation: string | null;
+      occurred_at: Date | null;
+      evidence: Array<{ title: string; url: string }> | null;
+    }>(
+      `SELECT s.id::text, s.title, s.category, s.summary, s.status::text,
+              s.opportunity_score, s.score_explanation,
+              COALESCE(s.occurred_at, s.published_at, s.imported_at) AS occurred_at,
+              COALESCE(jsonb_agg(jsonb_build_object(
+                'title', COALESCE(e.label, s.title), 'url', e.url
+              ) ORDER BY e.created_at) FILTER (WHERE e.id IS NOT NULL), '[]'::jsonb) AS evidence
+       FROM signals s
+       LEFT JOIN signal_evidence e ON e.signal_id = s.id
+       WHERE s.company_id = $1
+       GROUP BY s.id
+       ORDER BY COALESCE(s.occurred_at, s.published_at, s.imported_at) DESC`,
+      [account.company_id],
+    ),
+    pool.query<{
+      id: string;
+      name: string;
+      stage: AccountIntelligenceDTO["opportunities"][number]["stage"];
+      amount_usd: string | null;
+      probability: number | null;
+      expected_close_date: string | null;
+    }>(
+      `SELECT id::text, name, stage, amount_usd::text, probability,
+              expected_close_date::text
+       FROM opportunities WHERE account_id = $1
+       ORDER BY updated_at DESC`,
+      [id],
+    ),
+    pool.query<{
+      id: string;
+      event_type: string;
+      actor_email: string;
+      details: Record<string, unknown>;
+      occurred_at: Date;
+    }>(
+      `SELECT id::text, event_type, actor_email, details, occurred_at
+       FROM activity_events WHERE account_id = $1
+       ORDER BY occurred_at DESC LIMIT 50`,
+      [id],
+    ),
+  ]);
+
+  return {
+    id: account.id,
+    company: {
+      name: account.company_name,
+      website: account.website,
+      countryCode: account.country_code,
+    },
+    ownerEmail: account.owner_email,
+    lifecycleStage: account.lifecycle_stage,
+    createdAt: account.created_at.toISOString(),
+    originatingSignalId: account.created_from_signal_id,
+    signals: signals.rows.map((signal) => ({
+      id: signal.id,
+      title: signal.title,
+      category: signal.category,
+      summary: signal.summary,
+      status: signal.status,
+      score: signal.opportunity_score,
+      explanation: signal.score_explanation,
+      occurredAt: signal.occurred_at?.toISOString() ?? null,
+      evidence: signal.evidence ?? [],
+    })),
+    opportunities: opportunities.rows.map((opportunity) => ({
+      id: opportunity.id,
+      name: opportunity.name,
+      stage: opportunity.stage,
+      amountUsd: opportunity.amount_usd === null ? null : Number(opportunity.amount_usd),
+      probability: opportunity.probability,
+      expectedCloseDate: opportunity.expected_close_date,
+    })),
+    activities: activities.rows.map((activity) => ({
+      id: activity.id,
+      eventType: activity.event_type,
+      actorEmail: activity.actor_email,
+      details: activity.details,
+      occurredAt: activity.occurred_at.toISOString(),
+    })),
+  };
+}
