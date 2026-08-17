@@ -125,9 +125,11 @@ class PostgresSignalSink:
                         INSERT INTO signals (
                           source_id, company_id, external_id, title, category, summary,
                           location_text, power_capacity_mw, investment_usd_millions,
-                          published_at, raw_payload
+                          published_at, opportunity_score, raw_payload
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                        VALUES (
+                          %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb
+                        )
                         ON CONFLICT (source_id, external_id) DO UPDATE SET
                           company_id = EXCLUDED.company_id,
                           title = EXCLUDED.title,
@@ -137,6 +139,7 @@ class PostgresSignalSink:
                           power_capacity_mw = EXCLUDED.power_capacity_mw,
                           investment_usd_millions = EXCLUDED.investment_usd_millions,
                           published_at = EXCLUDED.published_at,
+                          opportunity_score = EXCLUDED.opportunity_score,
                           raw_payload = EXCLUDED.raw_payload,
                           updated_at = now()
                         RETURNING id
@@ -152,6 +155,7 @@ class PostgresSignalSink:
                             contract.power_capacity_mw,
                             contract.investment_usd_millions,
                             contract.published_at,
+                            contract.opportunity_score,
                             contract.json_payload(),
                         ),
                     )

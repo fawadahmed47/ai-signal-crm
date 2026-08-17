@@ -9,8 +9,9 @@ from datetime import datetime, timezone
 from typing import Any, Mapping, Optional
 
 from company_normalization import canonical_company_name, normalize_company_name
+from opportunity_scoring import calculate_opportunity_score
 
-SIGNAL_CONTRACT_VERSION = "1.1"
+SIGNAL_CONTRACT_VERSION = "1.2"
 
 
 def _optional_decimal(value: Any) -> Optional[float]:
@@ -51,6 +52,9 @@ class SignalContract:
     power_capacity_mw: Optional[float]
     investment_usd_millions: Optional[float]
     published_at: Optional[datetime]
+    opportunity_score: int
+    score_version: str
+    score_components: Mapping[str, int]
     raw_payload: Mapping[str, Any]
 
     @classmethod
@@ -67,6 +71,21 @@ class SignalContract:
         external_id = evidence_url or hashlib.sha256(
             f"{title}|{row.get('publish_date', '')}".encode("utf-8")
         ).hexdigest()
+        category = str(row.get("category") or "other").strip().lower()
+        location_text = ", ".join(location_parts) or None
+        power_capacity_mw = _optional_decimal(row.get("power_MW"))
+        investment_usd_millions = _optional_decimal(row.get("investment_usd_m"))
+        published_at = _published_at(row.get("publish_date"))
+        opportunity_score = calculate_opportunity_score(
+            category=category,
+            investment_usd_millions=investment_usd_millions,
+            power_capacity_mw=power_capacity_mw,
+            evidence_url=evidence_url,
+            company_name=company_name,
+            published_at=published_at,
+            location_text=location_text,
+            title=title,
+        )
 
         payload = dict(row)
         payload["contract_version"] = SIGNAL_CONTRACT_VERSION
@@ -75,17 +94,20 @@ class SignalContract:
             version=SIGNAL_CONTRACT_VERSION,
             external_id=external_id,
             title=title,
-            category=str(row.get("category") or "other").strip().lower(),
+            category=category,
             summary=title,
             evidence_url=evidence_url,
             company_name=company_name,
             normalized_company_name=(
                 normalize_company_name(company_name) if company_name else None
             ),
-            location_text=", ".join(location_parts) or None,
-            power_capacity_mw=_optional_decimal(row.get("power_MW")),
-            investment_usd_millions=_optional_decimal(row.get("investment_usd_m")),
-            published_at=_published_at(row.get("publish_date")),
+            location_text=location_text,
+            power_capacity_mw=power_capacity_mw,
+            investment_usd_millions=investment_usd_millions,
+            published_at=published_at,
+            opportunity_score=opportunity_score.total,
+            score_version=opportunity_score.version,
+            score_components=opportunity_score.components,
             raw_payload=payload,
         )
 

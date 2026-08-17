@@ -11,7 +11,7 @@ The original runtime artifacts were intentionally excluded:
 
 ## Signal contract
 
-Every successful extraction is converted to `SignalContract` version `1.1` before database persistence. The contract maps legacy extraction fields to CRM concepts:
+Every successful extraction is converted to `SignalContract` version `1.2` before database persistence. The contract maps legacy extraction fields to CRM concepts:
 
 | Extraction field | CRM field |
 | --- | --- |
@@ -29,6 +29,19 @@ The complete versioned contract is retained in `signals.raw_payload`. Reprocessi
 Company names are converted to conservative identity keys before persistence. Case, Unicode presentation, punctuation, ampersands, a leading `The`, and common trailing legal suffixes are normalized. For example, `Acme Data, Inc.` and `The ACME Data Corporation` resolve to one company. Fuzzy matching is intentionally excluded because it could silently merge unrelated organizations.
 
 PostgreSQL stores the resolved identity in `companies.normalized_name` and maintains matching keys in `company_aliases`. Company resolution is an atomic upsert, so concurrent ingestion cannot create duplicates for the same identity. The original extracted name remains available in the versioned raw signal payload for auditability.
+
+## Opportunity scoring
+
+Every non-error signal receives a deterministic advisory score from 0 to 100. Scoring version `1.0` uses four components:
+
+| Component | Maximum | Inputs |
+| --- | ---: | --- |
+| Signal category | 35 | Construction, expansion, investment, or other |
+| Investment scale | 25 | Extracted investment in USD millions |
+| Power capacity | 20 | Extracted capacity in MW |
+| Evidence completeness | 20 | URL, company, publication date, location, and title |
+
+The total is stored in `signals.opportunity_score`. Its version and component breakdown are retained in `signals.raw_payload`, allowing a score to be reproduced and audited. Recency is not included because the review queue already sorts by import time; this keeps reprocessing deterministic. Scores prioritize human review and never approve or mutate CRM records automatically.
 
 ## Install
 
