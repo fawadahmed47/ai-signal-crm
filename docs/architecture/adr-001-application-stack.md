@@ -2,7 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-16
-- **Jira:** ASCRM-6
+- **Origin:** ASCRM-6
+- **Documented under:** ASCRM-10
 
 ## Decision
 
@@ -18,4 +19,3 @@ The stack supports a polished internal application, typed server/client contract
 - Service integration must use explicit contracts rather than shared runtime state.
 - PostgreSQL becomes the CRM system of record; CSV becomes an import/export format.
 - Docker and CI must build the web and ingestion services separately.
-

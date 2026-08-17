@@ -43,7 +43,7 @@ RSS/news source
 
 ## Jira traceability
 
-The foundation is implemented under `ASCRM-6`. Subsequent database, UI, ingestion, and delivery changes use their own Jira keys and pull requests.
+The architecture and repository foundation originated under `ASCRM-6`. The decisions governing that foundation are recorded as ADRs under `ASCRM-10`. The files were first committed with the local PostgreSQL work in `ASCRM-24`; this note preserves accurate Jira context without rewriting published Git history. Subsequent database, UI, ingestion, and delivery changes use their own Jira keys and pull requests.
 
 ## Data model
 
