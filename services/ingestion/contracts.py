@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Any, Mapping, Optional
 
-SIGNAL_CONTRACT_VERSION = "1.0"
+from company_normalization import canonical_company_name, normalize_company_name
+
+SIGNAL_CONTRACT_VERSION = "1.1"
 
 
 def _optional_decimal(value: Any) -> Optional[float]:
@@ -34,10 +35,6 @@ def _published_at(value: Any) -> Optional[datetime]:
     return None
 
 
-def _normalized_company_name(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", value.casefold()).strip()
-
-
 @dataclass(frozen=True)
 class SignalContract:
     """Stable boundary between extraction and storage adapters."""
@@ -60,7 +57,8 @@ class SignalContract:
     def from_extracted_row(cls, row: Mapping[str, Any]) -> "SignalContract":
         evidence_url = str(row.get("link") or "").strip()
         title = str(row.get("news_title") or "Untitled signal").strip()
-        company_name = str(row.get("provider_name") or "").strip() or None
+        extracted_company_name = str(row.get("provider_name") or "")
+        company_name = canonical_company_name(extracted_company_name) or None
         location_parts = [
             str(row.get(field)).strip()
             for field in ("city", "state", "country")
@@ -82,7 +80,7 @@ class SignalContract:
             evidence_url=evidence_url,
             company_name=company_name,
             normalized_company_name=(
-                _normalized_company_name(company_name) if company_name else None
+                normalize_company_name(company_name) if company_name else None
             ),
             location_text=", ".join(location_parts) or None,
             power_capacity_mw=_optional_decimal(row.get("power_MW")),

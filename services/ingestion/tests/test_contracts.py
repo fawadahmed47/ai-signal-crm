@@ -29,12 +29,12 @@ class SignalContractTests(unittest.TestCase):
 
         self.assertEqual(contract.version, SIGNAL_CONTRACT_VERSION)
         self.assertEqual(contract.external_id, "https://example.com/acme-campus")
-        self.assertEqual(contract.normalized_company_name, "acme data inc")
+        self.assertEqual(contract.normalized_company_name, "acme data")
         self.assertEqual(contract.location_text, "Zurich, Switzerland")
         self.assertEqual(contract.power_capacity_mw, 120.0)
         self.assertEqual(contract.investment_usd_millions, 450.0)
         self.assertEqual(contract.published_at.isoformat(), "2026-08-15T00:00:00+00:00")
-        self.assertEqual(contract.raw_payload["contract_version"], "1.0")
+        self.assertEqual(contract.raw_payload["contract_version"], "1.1")
 
     def test_creates_stable_fallback_external_id(self) -> None:
         row = {"news_title": "No URL signal", "publish_date": "15 Aug 2026"}
@@ -48,7 +48,7 @@ class SignalContractTests(unittest.TestCase):
             {"news_title": "Serializable", "link": "https://example.com/1"}
         )
         payload = json.loads(contract.json_payload())
-        self.assertEqual(payload["version"], "1.0")
+        self.assertEqual(payload["version"], "1.1")
         self.assertEqual(payload["evidence_url"], "https://example.com/1")
 
 

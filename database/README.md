@@ -5,6 +5,7 @@ PostgreSQL is the Signal CRM system of record. Schema changes are versioned as o
 ## Initial domain model
 
 - `companies` stores deduplicated organizations.
+- `company_aliases` maps normalized name variants to one company.
 - `signal_sources`, `signals`, and `signal_evidence` preserve origin and evidence.
 - `signal_reviews` records human approval or rejection.
 - `accounts` and `opportunities` model the commercial workflow.
@@ -28,3 +29,4 @@ The migration runner records applied filenames in `schema_migrations`; rerunning
 3. Evidence is retained when a signal is reviewed.
 4. AI scores are advisory and constrained to 0–100.
 5. Human decisions are recorded in `signal_reviews`.
+6. Company matching uses deterministic identity keys; uncertain fuzzy matches require human review.

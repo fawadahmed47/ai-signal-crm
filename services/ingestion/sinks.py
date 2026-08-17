@@ -85,13 +85,38 @@ class PostgresSignalSink:
                     if contract.company_name and contract.normalized_company_name:
                         cursor.execute(
                             """
-                            INSERT INTO companies (canonical_name, normalized_name)
-                            VALUES (%s, %s)
-                            ON CONFLICT (normalized_name) DO UPDATE
-                              SET canonical_name = EXCLUDED.canonical_name
-                            RETURNING id
+                            WITH matched_alias AS (
+                              SELECT company_id
+                              FROM company_aliases
+                              WHERE normalized_alias = %s
+                            ), upserted_company AS (
+                              INSERT INTO companies (canonical_name, normalized_name)
+                              SELECT %s, %s
+                              WHERE NOT EXISTS (SELECT 1 FROM matched_alias)
+                              ON CONFLICT (normalized_name) DO UPDATE
+                                SET normalized_name = EXCLUDED.normalized_name
+                              RETURNING id
+                            ), resolved_company AS (
+                              SELECT company_id AS id FROM matched_alias
+                              UNION ALL
+                              SELECT id FROM upserted_company
+                              LIMIT 1
+                            )
+                            INSERT INTO company_aliases (
+                              company_id, alias_name, normalized_alias
+                            )
+                            SELECT id, %s, %s FROM resolved_company
+                            ON CONFLICT (normalized_alias) DO UPDATE
+                              SET alias_name = EXCLUDED.alias_name
+                            RETURNING company_id
                             """,
-                            (contract.company_name, contract.normalized_company_name),
+                            (
+                                contract.normalized_company_name,
+                                contract.company_name,
+                                contract.normalized_company_name,
+                                contract.company_name,
+                                contract.normalized_company_name,
+                            ),
                         )
                         company_id = cursor.fetchone()[0]
 
