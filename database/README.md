@@ -31,3 +31,4 @@ The migration runner records applied filenames in `schema_migrations`; rerunning
 5. Human decisions are recorded in `signal_reviews`.
 6. Company matching uses deterministic identity keys; uncertain fuzzy matches require human review.
 7. Approving a matched signal creates its company account atomically, or reuses the existing account.
+8. Opportunities belong to accounts and progress through identified, qualified, proposal, won, or lost stages.

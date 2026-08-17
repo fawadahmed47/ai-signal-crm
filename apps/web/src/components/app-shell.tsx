@@ -13,12 +13,13 @@ import {
   Tray,
   X,
 } from "@phosphor-icons/react";
+import Link from "next/link";
 import { useState } from "react";
 
 const navigation = [
-  { label: "Inbox", icon: Tray, count: 12 },
+  { label: "Inbox", icon: Tray, href: "/" },
   { label: "Accounts", icon: Buildings },
-  { label: "Opportunities", icon: Target },
+  { label: "Opportunities", icon: Target, href: "/opportunities" },
   { label: "Tasks", icon: CheckSquare },
   { label: "Reports", icon: ChartBar },
   { label: "Settings", icon: Gear },
@@ -29,11 +30,11 @@ type AppShellProps = {
   subtitle: string;
   children: React.ReactNode;
   contentClassName?: string;
+  activeItem?: string;
 };
 
-export function AppShell({ title, subtitle, children, contentClassName }: AppShellProps) {
+export function AppShell({ title, subtitle, children, contentClassName, activeItem = "Inbox" }: AppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState("Inbox");
 
   return (
     <div className="app-frame">
@@ -48,16 +49,19 @@ export function AppShell({ title, subtitle, children, contentClassName }: AppShe
         </div>
 
         <nav className="primary-nav">
-          {navigation.map(({ label, icon: Icon, count }) => (
-            <button
+          {navigation.map(({ label, icon: Icon, href }) => href ? (
+            <Link
               className={activeItem === label ? "nav-item active" : "nav-item"}
               key={label}
-              type="button"
-              onClick={() => { setActiveItem(label); setMenuOpen(false); }}
+              href={href}
+              onClick={() => setMenuOpen(false)}
             >
               <Icon size={23} weight={activeItem === label ? "fill" : "regular"} />
               <span>{label}</span>
-              {count ? <span className="nav-count">{count}</span> : null}
+            </Link>
+          ) : (
+            <button className="nav-item" key={label} type="button" onClick={() => setMenuOpen(false)}>
+              <Icon size={23} /><span>{label}</span>
             </button>
           ))}
         </nav>
