@@ -151,6 +151,7 @@ button { color: inherit; }
 .why-card,.account-card { min-height: 228px; }
 .account-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
 .account-heading > div { display: grid; gap: 3px; }.account-heading strong { font-size: 14px; }.account-heading button { width: max-content; padding: 0; border: 0; color: #20a65d; background: transparent; cursor: pointer; font-size: 11px; }
+.pending-label { color: #9a6700; font-size: 10px; }
 .account-card dl { display: grid; gap: 9px; margin: 0; }.account-card dl div { display: grid; grid-template-columns: 1fr auto; gap: 10px; color: #4f5b6f; font-size: 10.5px; }.account-card dt,.account-card dd { margin: 0; }.strength-dots { margin-left: 7px; color: #31aa68; letter-spacing: 1px; }
 .evidence-card,.assignment-card { min-height: 317px; }
 .evidence-list { display: grid; gap: 8px; }
@@ -161,11 +162,20 @@ button { color: inherit; }
 .assignment-divider { height: 1px; margin: 15px 0; background: var(--line); }
 .destination-select { position: relative; height: 39px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 0 11px; border: 1px solid #dfe3e1; border-radius: 7px; }.destination-select select { min-width: 0; border: 0; outline: 0; appearance: none; background: transparent; font-size: 10.5px; }
 .opportunity-chip { min-height: 53px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; margin-top: 9px; padding: 10px; border: 1px solid #e5e7e4; border-radius: 7px; }.opportunity-chip > svg:first-child { color: #e6a300; }.opportunity-chip span { display: grid; gap: 4px; }.opportunity-chip strong { font-size: 10.5px; }.opportunity-chip small { color: var(--muted); font-size: 9.5px; }
+.review-feedback-card { display: flex; flex-direction: column; }
+.review-feedback-card > p { margin-bottom: 14px; line-height: 1.55; }
+.review-feedback-card label { display: grid; gap: 7px; color: #536078; font-size: 10.5px; font-weight: 700; }
+.review-feedback-card textarea { min-height: 126px; resize: vertical; padding: 11px; border: 1px solid #dfe3e1; border-radius: 8px; color: var(--ink); background: #fff; font: inherit; font-size: 11px; line-height: 1.5; }
+.review-feedback-card textarea:focus { outline: 3px solid rgba(32,189,104,.14); border-color: var(--green); }
+.review-feedback-card > small { margin-top: 7px; color: var(--muted); text-align: right; font-size: 9.5px; }
 .review-actions { position: sticky; bottom: 0; z-index: 5; display: grid; grid-template-columns: minmax(300px,1fr) 180px; gap: 14px; padding: 20px 32px 24px; border-top: 1px solid var(--line); background: rgba(255,255,255,.96); }
 .approve-button,.dismiss-button { min-height: 58px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 8px; cursor: pointer; font-weight: 750; }
 .approve-button { border: 1px solid #1eb462; color: #fff; background: #22b966; }.approve-button:hover { background: #159b51; }.dismiss-button { border: 1px solid #cfd4d1; background: #fff; }.dismiss-button:hover { border-color: #9ba49f; }
+.approve-button:disabled,.dismiss-button:disabled { opacity: .55; cursor: not-allowed; }
 .signal-toast { position: fixed; top: 105px; right: 22px; z-index: 50; max-width: 420px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 13px 14px; border: 1px solid #afe0c5; border-radius: 9px; color: #0d6b39; background: #edfaf3; box-shadow: var(--shadow-soft); font-size: 12px; }.signal-toast button { display: grid; place-items: center; border: 0; background: transparent; cursor: pointer; }
+.signal-toast.error { border-color: #efb4b4; color: #9d2525; background: #fff1f1; }
 .signal-empty { min-height: calc(100vh - 94px); display: grid; place-content: center; justify-items: center; color: var(--green-dark); text-align: center; }.signal-empty h2 { margin: 12px 0 4px; color: var(--ink); }.signal-empty p { margin: 0; color: var(--muted); }
+.signal-empty.error { color: #b23b3b; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
 @media (max-width: 980px) {
