@@ -7,8 +7,15 @@ export type ReviewSignalInput = {
 };
 
 export type ReviewResult =
-  | { status: "recorded"; signalId: string; decision: ReviewDecision }
+  | {
+      status: "recorded";
+      signalId: string;
+      decision: ReviewDecision;
+      accountId?: string;
+      accountCreated?: boolean;
+    }
   | { status: "not_found" }
+  | { status: "company_required" }
   | { status: "already_reviewed"; decision: string };
 
 type QueryResult<Row> = { rows: Row[]; rowCount: number | null };
@@ -78,11 +85,11 @@ export async function recordSignalReview(
   try {
     await client.query("BEGIN");
     transactionOpen = true;
-    const updated = await client.query<{ id: string }>(
+    const updated = await client.query<{ id: string; company_id: string | null }>(
       `UPDATE signals
        SET status = $2, updated_at = now()
        WHERE id = $1 AND status = 'pending'
-       RETURNING id`,
+       RETURNING id, company_id::text`,
       [input.signalId, input.decision],
     );
 
@@ -98,14 +105,50 @@ export async function recordSignalReview(
         : { status: "already_reviewed", decision: existing.rows[0].status };
     }
 
+    const companyId = updated.rows[0].company_id;
+    if (input.decision === "approved" && !companyId) {
+      await client.query("ROLLBACK");
+      transactionOpen = false;
+      return { status: "company_required" };
+    }
+
     await client.query(
       `INSERT INTO signal_reviews (signal_id, decision, reviewer_email, reason)
        VALUES ($1, $2, $3, $4)`,
       [input.signalId, input.decision, reviewerEmail, input.reason ?? null],
     );
+
+    let accountId: string | undefined;
+    let accountCreated: boolean | undefined;
+    if (input.decision === "approved" && companyId) {
+      const insertedAccount = await client.query<{ id: string }>(
+        `INSERT INTO accounts (company_id, owner_email, created_from_signal_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (company_id) DO NOTHING
+         RETURNING id::text`,
+        [companyId, reviewerEmail, input.signalId],
+      );
+      accountCreated = insertedAccount.rowCount === 1;
+      if (accountCreated) {
+        accountId = insertedAccount.rows[0].id;
+      } else {
+        const existingAccount = await client.query<{ id: string }>(
+          "SELECT id::text FROM accounts WHERE company_id = $1",
+          [companyId],
+        );
+        accountId = existingAccount.rows[0]?.id;
+        if (!accountId) throw new Error("Company account could not be resolved.");
+      }
+    }
+
     await client.query("COMMIT");
     transactionOpen = false;
-    return { status: "recorded", signalId: input.signalId, decision: input.decision };
+    return {
+      status: "recorded",
+      signalId: input.signalId,
+      decision: input.decision,
+      ...(accountId ? { accountId, accountCreated } : {}),
+    };
   } catch (error) {
     if (transactionOpen) {
       try {

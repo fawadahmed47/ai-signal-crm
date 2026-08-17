@@ -188,7 +188,7 @@ export function SignalInbox({ initialSignals, loadError }: SignalInboxProps) {
             </div>
             <dl>
               <div><dt>Review status</dt><dd>Unreviewed</dd></div>
-              <div><dt>Account mutation</dt><dd>Not performed</dd></div>
+              <div><dt>Approval result</dt><dd>Create or reuse account</dd></div>
               <div><dt>Evidence records</dt><dd>{selected.evidence.length}</dd></div>
             </dl>
           </section>
@@ -223,7 +223,7 @@ export function SignalInbox({ initialSignals, loadError }: SignalInboxProps) {
         </div>
         <footer className="review-actions">
           <button className="approve-button" type="button" disabled={isPending} onClick={() => resolveSignal("approved")}>
-            <Check size={21} weight="bold" /> {isPending ? "Saving review…" : "Approve signal"}
+            <Check size={21} weight="bold" /> {isPending ? "Creating account…" : "Approve & create account"}
           </button>
           <button className="dismiss-button" type="button" disabled={isPending || !reviewNote.trim()} onClick={() => resolveSignal("rejected")}>
             <X size={21} /> Dismiss

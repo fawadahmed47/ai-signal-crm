@@ -30,6 +30,12 @@ export async function reviewSignalAction(
     if (result.status === "not_found") {
       return { ok: false, message: "This signal no longer exists." };
     }
+    if (result.status === "company_required") {
+      return {
+        ok: false,
+        message: "Match this signal to a company before approving it as an account.",
+      };
+    }
     if (result.status === "already_reviewed") {
       return {
         ok: false,
@@ -42,7 +48,9 @@ export async function reviewSignalAction(
       ok: true,
       message:
         result.decision === "approved"
-          ? "Signal approved. Account creation is handled in the next workflow."
+          ? result.accountCreated
+            ? "Signal approved and account created."
+            : "Signal approved and linked to the existing account."
           : "Signal dismissed and feedback recorded.",
     };
   } catch (error) {
