@@ -76,7 +76,7 @@ export async function getAccountIntelligence(id: string): Promise<AccountIntelli
   if (!accountResult.rowCount) return null;
   const account = accountResult.rows[0];
 
-  const [signals, opportunities, activities, outreachDrafts] = await Promise.all([
+  const [signals, opportunities, tasks, activities, outreachDrafts] = await Promise.all([
     pool.query<{
       id: string;
       title: string;
@@ -115,6 +115,13 @@ export async function getAccountIntelligence(id: string): Promise<AccountIntelli
        ORDER BY updated_at DESC`,
       [id],
     ),
+    pool.query<{
+      id:string; title:string; description:string|null; assignee_email:string;
+      status:AccountIntelligenceDTO["tasks"][number]["status"]; due_at:Date|null;
+    }>(
+      `SELECT id::text,title,description,assignee_email,status,due_at
+       FROM crm_tasks WHERE account_id=$1
+       ORDER BY (status IN ('open','in_progress')) DESC,due_at NULLS LAST,created_at DESC`,[id]),
     pool.query<{
       id: string;
       event_type: string;
@@ -187,5 +194,7 @@ export async function getAccountIntelligence(id: string): Promise<AccountIntelli
       generatedByEmail: draft.generated_by_email,
       createdAt: draft.created_at.toISOString(),
     })),
+    tasks: tasks.rows.map((task) => ({ id:task.id,title:task.title,description:task.description,
+      assigneeEmail:task.assignee_email,status:task.status,dueAt:task.due_at?.toISOString() ?? null })),
   };
 }

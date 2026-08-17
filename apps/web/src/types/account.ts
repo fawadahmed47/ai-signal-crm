@@ -57,4 +57,12 @@ export type AccountIntelligenceDTO = {
     generatedByEmail: string;
     createdAt: string;
   }>;
+  tasks: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    assigneeEmail: string;
+    status: "open" | "in_progress" | "completed" | "cancelled";
+    dueAt: string | null;
+  }>;
 };
