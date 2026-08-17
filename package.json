@@ -1,0 +1,16 @@
+{
+  "name": "signal-crm",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "docker compose --profile tools run --rm migrate",
+    "db:down": "docker compose down",
+    "dev": "pnpm --filter @signal-crm/web dev",
+    "build": "pnpm --filter @signal-crm/web build",
+    "typecheck": "pnpm --filter @signal-crm/web typecheck",
+    "lint": "pnpm --filter @signal-crm/web lint",
+    "test": "pnpm --filter @signal-crm/web test"
+  }
+}
