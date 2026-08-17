@@ -10,6 +10,8 @@ import {
 } from "./signal-review-core";
 
 const SIGNAL_ID = "11111111-1111-4111-8111-111111111111";
+const COMPANY_ID = "22222222-2222-4222-8222-222222222222";
+const ACCOUNT_ID = "33333333-3333-4333-8333-333333333333";
 
 class FakeClient implements ReviewDatabaseClient {
   readonly calls: Array<{ text: string; values?: readonly unknown[] }> = [];
@@ -43,8 +45,9 @@ function databaseFor(client: FakeClient): ReviewDatabase {
 
 test("records an approved review in one short transaction", async () => {
   const client = new FakeClient([
-    { rows: [{ id: SIGNAL_ID }], rowCount: 1 },
+    { rows: [{ id: SIGNAL_ID, company_id: COMPANY_ID }], rowCount: 1 },
     { rows: [], rowCount: 1 },
+    { rows: [{ id: ACCOUNT_ID }], rowCount: 1 },
   ]);
 
   const result = await recordSignalReview(
@@ -53,10 +56,16 @@ test("records an approved review in one short transaction", async () => {
     "Reviewer@Example.com",
   );
 
-  assert.deepEqual(result, { status: "recorded", signalId: SIGNAL_ID, decision: "approved" });
+  assert.deepEqual(result, {
+    status: "recorded",
+    signalId: SIGNAL_ID,
+    decision: "approved",
+    accountId: ACCOUNT_ID,
+    accountCreated: true,
+  });
   assert.deepEqual(
     client.calls.map((call) => call.text.trim().split(/\s+/)[0]),
-    ["BEGIN", "UPDATE", "INSERT", "COMMIT"],
+    ["BEGIN", "UPDATE", "INSERT", "INSERT", "COMMIT"],
   );
   assert.deepEqual(client.calls[2].values, [
     SIGNAL_ID,
@@ -65,6 +74,48 @@ test("records an approved review in one short transaction", async () => {
     "Strong evidence",
   ]);
   assert.equal(client.released, true);
+});
+
+test("reuses an existing company account without changing its owner", async () => {
+  const client = new FakeClient([
+    { rows: [{ id: SIGNAL_ID, company_id: COMPANY_ID }], rowCount: 1 },
+    { rows: [], rowCount: 1 },
+    { rows: [], rowCount: 0 },
+    { rows: [{ id: ACCOUNT_ID }], rowCount: 1 },
+  ]);
+
+  const result = await recordSignalReview(
+    databaseFor(client),
+    { signalId: SIGNAL_ID, decision: "approved" },
+    "reviewer@example.com",
+  );
+
+  assert.deepEqual(result, {
+    status: "recorded",
+    signalId: SIGNAL_ID,
+    decision: "approved",
+    accountId: ACCOUNT_ID,
+    accountCreated: false,
+  });
+  assert.match(client.calls[4].text, /^SELECT id::text FROM accounts/);
+});
+
+test("rolls approval back when the signal has no company match", async () => {
+  const client = new FakeClient([
+    { rows: [{ id: SIGNAL_ID, company_id: null }], rowCount: 1 },
+  ]);
+
+  const result = await recordSignalReview(
+    databaseFor(client),
+    { signalId: SIGNAL_ID, decision: "approved" },
+    "reviewer@example.com",
+  );
+
+  assert.deepEqual(result, { status: "company_required" });
+  assert.deepEqual(
+    client.calls.map((call) => call.text.trim().split(/\s+/)[0]),
+    ["BEGIN", "UPDATE", "ROLLBACK"],
+  );
 });
 
 test("returns an idempotent conflict without inserting another review", async () => {
