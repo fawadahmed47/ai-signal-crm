@@ -34,6 +34,10 @@ pnpm.cmd dev
 
 The web application is available at `http://localhost:3000`. Its health endpoint is `/api/health`. PostgreSQL is available on `localhost:5432` by default.
 
+### Local demo data
+
+Run `pnpm.cmd db:seed` to load four signals, three accounts, three opportunities, three tasks, and activity history for a local demo. Re-running it replaces only those demo records. Run `pnpm.cmd db:seed:clear` to remove them.
+
 ## Delivery rules
 
 - No secrets or runtime data are committed.
