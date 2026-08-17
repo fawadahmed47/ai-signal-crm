@@ -88,6 +88,7 @@ class SinkTests(unittest.TestCase):
         self.assertIn("ON CONFLICT (source_id, external_id)", sql)
         self.assertIn("ON CONFLICT (signal_id, url)", sql)
         self.assertIn("opportunity_score = EXCLUDED.opportunity_score", sql)
+        self.assertIn("score_explanation = EXCLUDED.score_explanation", sql)
         self.assertIn("contract_version", connection.fake_cursor.statements[2][1][-1])
 
     def test_postgres_sink_requires_database_url(self) -> None:

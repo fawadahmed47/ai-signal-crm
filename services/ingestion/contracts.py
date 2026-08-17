@@ -6,12 +6,13 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from company_normalization import canonical_company_name, normalize_company_name
+from evidence_explanation import generate_evidence_explanation
 from opportunity_scoring import calculate_opportunity_score
 
-SIGNAL_CONTRACT_VERSION = "1.2"
+SIGNAL_CONTRACT_VERSION = "1.3"
 
 
 def _optional_decimal(value: Any) -> Optional[float]:
@@ -55,6 +56,9 @@ class SignalContract:
     opportunity_score: int
     score_version: str
     score_components: Mapping[str, int]
+    score_explanation: str
+    explanation_version: str
+    explanation_facts: Sequence[str]
     raw_payload: Mapping[str, Any]
 
     @classmethod
@@ -86,6 +90,18 @@ class SignalContract:
             location_text=location_text,
             title=title,
         )
+        explanation = generate_evidence_explanation(
+            title=title,
+            category=category,
+            company_name=company_name,
+            investment_usd_millions=investment_usd_millions,
+            power_capacity_mw=power_capacity_mw,
+            location_text=location_text,
+            published_at=published_at,
+            evidence_url=evidence_url,
+            opportunity_score=opportunity_score.total,
+            score_components=opportunity_score.components,
+        )
 
         payload = dict(row)
         payload["contract_version"] = SIGNAL_CONTRACT_VERSION
@@ -108,6 +124,9 @@ class SignalContract:
             opportunity_score=opportunity_score.total,
             score_version=opportunity_score.version,
             score_components=opportunity_score.components,
+            score_explanation=explanation.text,
+            explanation_version=explanation.version,
+            explanation_facts=explanation.facts,
             raw_payload=payload,
         )
 
