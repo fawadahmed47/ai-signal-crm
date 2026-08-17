@@ -28,9 +28,10 @@ type AppShellProps = {
   title: string;
   subtitle: string;
   children: React.ReactNode;
+  contentClassName?: string;
 };
 
-export function AppShell({ title, subtitle, children }: AppShellProps) {
+export function AppShell({ title, subtitle, children, contentClassName }: AppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeItem, setActiveItem] = useState("Inbox");
 
@@ -66,11 +67,14 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
           <button type="button"><span>All signals</span><strong>12</strong></button>
           <button type="button"><span>High opportunity</span><strong>5</strong></button>
           <button type="button"><span>My accounts</span><strong>7</strong></button>
+          <button type="button"><span>Unreviewed</span><strong>12</strong></button>
+          <button type="button"><span>Approved</span><strong>18</strong></button>
+          <button type="button"><span>Dismissed</span><strong>9</strong></button>
         </div>
 
         <div className="help-card">
           <strong>Need help?</strong>
-          <span>Visit the workspace guide</span>
+          <span>Visit our help center</span>
         </div>
       </aside>
 
@@ -86,16 +90,16 @@ export function AppShell({ title, subtitle, children }: AppShellProps) {
             <p>{subtitle}</p>
           </div>
           <div className="topbar-actions">
-            <span className="date"><CalendarBlank size={18} /> 16 August 2026</span>
+            <span className="date"><CalendarBlank size={18} /> 15 August 2026</span>
             <button className="icon-button" type="button" aria-label="Notifications"><Bell size={21} /></button>
             <button className="profile-button" type="button" aria-label="Open profile menu">
-              <span className="avatar">FA</span>
-              <span className="profile-copy"><strong>Fawad Ahmed</strong><small>Product Manager</small></span>
+              <span className="avatar">JS</span>
+              <span className="profile-copy"><strong>Jamie Smith</strong><small>Sales Operator</small></span>
               <CaretDown size={16} />
             </button>
           </div>
         </header>
-        <main className="workspace-content" id="main-content">{children}</main>
+        <main className={`workspace-content ${contentClassName ?? ""}`} id="main-content">{children}</main>
       </div>
     </div>
   );
