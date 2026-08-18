@@ -9,6 +9,7 @@ import {
   CheckSquare,
   Gear,
   SidebarSimple,
+  Sparkle,
   Target,
   Tray,
   X,
@@ -19,6 +20,8 @@ import { useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
 
 const navigation = [
+  { label: "Today", icon: CheckSquare, href: "/sales-workspace", managerOnly: false },
+  { label: "GTM Hub", icon: Sparkle, href: "/gtm-workspace", managerOnly: false },
   { label: "Inbox", icon: Tray, href: "/", managerOnly: false },
   { label: "Accounts", icon: Buildings, href: "/accounts", managerOnly: false },
   { label: "Opportunities", icon: Target, href: "/opportunities", managerOnly: false },

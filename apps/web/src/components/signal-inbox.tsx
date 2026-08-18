@@ -141,6 +141,13 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview, ini
   const opportunityLevel = selected.score >= 75 ? "High" : selected.score >= 45 ? "Medium" : "Low";
   const money = selected.investmentUsdMillions === null ? "Not reported" : `$${selected.investmentUsdMillions.toLocaleString("en-US")}M`;
   const capacity = selected.powerCapacityMw === null ? "Not reported" : `${selected.powerCapacityMw.toLocaleString("en-US")} MW`;
+  const priority = selected.score >= 75 ? "Hot lead" : selected.score >= 45 ? "Warm lead" : "Monitor";
+  const scoreFactors = [
+    ["Commercial event", selected.scoreBreakdown.category, 35],
+    ["Investment scale", selected.scoreBreakdown.investment, 25],
+    ["Power capacity", selected.scoreBreakdown.powerCapacity, 20],
+    ["Evidence quality", selected.scoreBreakdown.evidence, 20],
+  ] as const;
 
   return (
     <div className="signal-inbox">
@@ -241,8 +248,15 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview, ini
 
         <div className="signal-detail-grid">
           <section className="detail-card why-card">
-            <h3>Why it matters</h3>
+            <div className="detail-card-title"><h3>Why it matters</h3><span className={`lead-priority ${priority.split(" ")[0].toLowerCase()}`}>{priority}</span></div>
             <p>{selected.why}</p>
+          </section>
+          <section className="detail-card score-explain-card">
+            <div className="detail-card-title"><h3>Lead score explained</h3><strong>{selected.score}/100</strong></div>
+            <p>Auditable scoring ranks review priority; it never approves a lead automatically.</p>
+            <div className="score-factor-list">
+              {scoreFactors.map(([name, value, maximum]) => <div key={name}><span>{name}<small>{value}/{maximum}</small></span><div><i style={{ width: `${maximum ? Math.min(100, value / maximum * 100) : 0}%` }} /></div></div>)}
+            </div>
           </section>
           <section className="detail-card account-card">
             <h3>Company match</h3>

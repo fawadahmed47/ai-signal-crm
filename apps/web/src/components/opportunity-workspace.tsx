@@ -1,10 +1,11 @@
 "use client";
 
-import { CheckCircle, CurrencyDollar, PencilSimple, Plus, Target, X } from "@phosphor-icons/react";
+import { ArrowRight, ChartLineUp, CheckCircle, CurrencyDollar, PencilSimple, Plus, Target, X } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { saveOpportunityAction } from "@/app/actions/save-opportunity";
+import { advanceOpportunityStageAction } from "@/app/actions/advance-opportunity-stage";
 import { OPPORTUNITY_STAGES } from "@/data/opportunity-core";
 import type { OpportunityAccountDTO, OpportunityDTO, OpportunityStage } from "@/types/opportunity";
 
@@ -63,6 +64,12 @@ export function OpportunityWorkspace({
       .reduce((total, opportunity) => total + (opportunity.amountUsd ?? 0), 0),
     [initialOpportunities],
   );
+  const weightedPipeline = useMemo(
+    () => initialOpportunities
+      .filter((opportunity) => opportunity.stage !== "lost")
+      .reduce((total, opportunity) => total + opportunity.weightedValue, 0),
+    [initialOpportunities],
+  );
 
   function openCreateForm() {
     setForm({ ...EMPTY_FORM, accountId: accounts[0]?.id ?? "" });
@@ -106,6 +113,17 @@ export function OpportunityWorkspace({
     });
   }
 
+  function advanceOpportunity(opportunity: OpportunityDTO) {
+    const currentIndex = OPPORTUNITY_STAGES.indexOf(opportunity.stage);
+    const nextStage = OPPORTUNITY_STAGES[currentIndex + 1];
+    if (!nextStage || isPending) return;
+    startTransition(async () => {
+      const result = await advanceOpportunityStageAction(opportunity.id, nextStage);
+      setNotice({ message: result.message, error: !result.ok });
+      if (result.ok) router.refresh();
+    });
+  }
+
   if (loadError) {
     return <section className="opportunity-empty error"><X size={42} /><h2>Opportunities unavailable</h2><p>{loadError}</p></section>;
   }
@@ -123,6 +141,7 @@ export function OpportunityWorkspace({
       <section className="opportunity-summary" aria-label="Pipeline summary">
         <div><span><Target size={22} /></span><p>Open opportunities<strong>{initialOpportunities.filter((item) => item.stage !== "won" && item.stage !== "lost").length}</strong></p></div>
         <div><span><CurrencyDollar size={22} /></span><p>Pipeline value<strong>{formatMoney(pipelineValue)}</strong></p></div>
+        <div><span><ChartLineUp size={22} /></span><p>Weighted pipeline<strong>{formatMoney(weightedPipeline)}</strong></p></div>
         <button className="button button-primary" type="button" disabled={!accounts.length} onClick={openCreateForm}>
           <Plus size={18} weight="bold" /> New opportunity
         </button>
@@ -142,24 +161,14 @@ export function OpportunityWorkspace({
           <button className="button button-primary" type="button" onClick={openCreateForm}><Plus size={18} /> New opportunity</button>
         </section>
       ) : (
-        <section className="opportunity-table-card">
-          <header><div><p>Commercial pipeline</p><h2>All opportunities</h2></div><span>{initialOpportunities.length} total</span></header>
-          <div className="opportunity-table-wrap">
-            <table className="opportunity-table">
-              <thead><tr><th>Opportunity</th><th>Stage</th><th>Amount</th><th>Probability</th><th>Expected close</th><th><span className="sr-only">Actions</span></th></tr></thead>
-              <tbody>
-                {initialOpportunities.map((opportunity) => (
-                  <tr key={opportunity.id}>
-                    <td><strong>{opportunity.name}</strong><small>{opportunity.accountName}<br />{opportunity.ownerEmail}</small></td>
-                    <td><span className={`stage-pill ${opportunity.stage}`}>{stageLabel(opportunity.stage)}</span></td>
-                    <td>{formatMoney(opportunity.amountUsd)}</td>
-                    <td>{opportunity.probability === null ? "Not set" : `${opportunity.probability}%`}</td>
-                    <td>{opportunity.expectedCloseDate ?? "Not set"}</td>
-                    <td><button className="icon-button" type="button" aria-label={`Edit ${opportunity.name}`} onClick={() => openEditForm(opportunity)}><PencilSimple size={18} /></button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <section className="pipeline-board-card">
+          <header><div><p>Commercial pipeline</p><h2>Sales pipeline board</h2></div><span>{initialOpportunities.length} opportunities</span></header>
+          <div className="pipeline-board" aria-label="Opportunities grouped by stage">
+            {OPPORTUNITY_STAGES.map((stage) => {
+              const stageItems = initialOpportunities.filter((item) => item.stage === stage);
+              const stageValue = stageItems.reduce((sum, item) => sum + (item.amountUsd ?? 0), 0);
+              return <section className={`pipeline-column ${stage}`} key={stage}><header><div><span className={`stage-pill ${stage}`}>{stageLabel(stage)}</span><b>{stageItems.length}</b></div><small>{formatMoney(stageValue)}</small></header><div className="pipeline-cards">{stageItems.length ? stageItems.map((opportunity) => <article key={opportunity.id}><button type="button" aria-label={`Edit ${opportunity.name}`} onClick={() => openEditForm(opportunity)}><PencilSimple size={15} /></button><p>{opportunity.accountName}</p><strong>{opportunity.name}</strong><dl><div><dt>Value</dt><dd>{formatMoney(opportunity.amountUsd)}</dd></div><div><dt>Weighted</dt><dd>{formatMoney(opportunity.weightedValue)}</dd></div><div><dt>Probability</dt><dd>{opportunity.probability === null ? "–" : `${opportunity.probability}%`}</dd></div><div><dt>Close</dt><dd>{opportunity.expectedCloseDate ?? "Not set"}</dd></div></dl>{stage !== "won" && stage !== "lost" ? <button className="pipeline-advance" type="button" disabled={isPending} onClick={() => advanceOpportunity(opportunity)}>Advance to {stageLabel(OPPORTUNITY_STAGES[OPPORTUNITY_STAGES.indexOf(stage) + 1] ?? stage)} <ArrowRight size={13} /></button> : null}</article>) : <p className="pipeline-empty">No opportunities</p>}</div></section>;
+            })}
           </div>
         </section>
       )}

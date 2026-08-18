@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AnalyticsDashboard } from "@/components/analytics-dashboard";
 import { AppShell } from "@/components/app-shell";
+import { FilteredCsvExport } from "@/components/filtered-csv-export";
 import { getAnalyticsReport } from "@/data/analytics";
 import { getNavigationCounts } from "@/data/dashboard";
 import type { NavigationCounts } from "@/data/dashboard";
@@ -27,6 +28,7 @@ export default async function ReportsPage() {
   return (
     <AppShell activeItem="Reports" title="Reports" subtitle="Live signal, pipeline, and execution analytics" navigationCounts={navigationCounts} session={session}>
       <AnalyticsDashboard report={report} loadError={loadError} />
+      {session.role === "manager" ? <FilteredCsvExport /> : null}
     </AppShell>
   );
 }

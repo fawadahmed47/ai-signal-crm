@@ -18,6 +18,7 @@ type SignalRow = {
   detected_at: Date;
   evidence: Array<{ title: string; url: string }> | null;
   lifecycle_stage: CommercialLifecycleStage;
+  score_components: Record<string, number> | null;
 };
 
 function formatDetected(value: Date): string {
@@ -64,6 +65,7 @@ export async function getPendingSignals(limit = 100): Promise<SignalInboxDTO[]> 
        s.investment_usd_millions::text,
        s.location_text,
        s.lifecycle_stage,
+       s.raw_payload -> 'score_components' AS score_components,
        COALESCE((s.raw_payload ->> 'demo')::boolean, false) AS is_demo,
        COALESCE(s.published_at, s.imported_at) AS detected_at,
        COALESCE(
@@ -109,6 +111,12 @@ export async function getPendingSignals(limit = 100): Promise<SignalInboxDTO[]> 
       why: row.score_explanation ?? "No evidence-based explanation is available yet.",
       evidence,
       lifecycleStage: row.lifecycle_stage,
+      scoreBreakdown: {
+        category: Number(row.score_components?.category ?? 0),
+        investment: Number(row.score_components?.investment ?? 0),
+        powerCapacity: Number(row.score_components?.power_capacity ?? 0),
+        evidence: Number(row.score_components?.evidence_completeness ?? 0),
+      },
     };
   });
 }
