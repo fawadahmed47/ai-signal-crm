@@ -1,4 +1,4 @@
-import { getDemoSession } from "@/data/demo-session";
+import { getUserSession } from "@/data/auth-session";
 import { getDatabasePool } from "@/data/db";
 
 function csvCell(value: string | number | null | undefined) {
@@ -7,7 +7,7 @@ function csvCell(value: string | number | null | undefined) {
 }
 
 export async function GET() {
-  const session = await getDemoSession();
+  const session = await getUserSession();
   if (!session || session.role !== "manager") return new Response("Manager access required", { status: 403 });
 
   const result = await getDatabasePool().query<{

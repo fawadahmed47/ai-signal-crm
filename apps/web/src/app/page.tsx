@@ -6,18 +6,21 @@ import type { IngestionSourceStatus, NavigationCounts } from "@/data/dashboard";
 import type { SignalInboxDTO } from "@/types/signal";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import { getDemoSession } from "@/data/demo-session";
+import { getUserSession } from "@/data/auth-session";
+import { getSavedSignalViews } from "@/data/saved-views";
+import type { SavedSignalView } from "@/data/saved-views";
 
 export default async function Home() {
   await connection();
-  const session = await getDemoSession();
+  const session = await getUserSession();
   if (!session) redirect("/login");
   let signals: SignalInboxDTO[] = [];
   let loadError: string | undefined;
   let navigationCounts: NavigationCounts | undefined;
   let sources: IngestionSourceStatus[] = [];
+  let savedViews: SavedSignalView[] = [];
   try {
-    [signals, navigationCounts, sources] = await Promise.all([getPendingSignals(), getNavigationCounts(), getIngestionSourceStatuses()]);
+    [signals, navigationCounts, sources, savedViews] = await Promise.all([getPendingSignals(), getNavigationCounts(), getIngestionSourceStatuses(), getSavedSignalViews(session.userId)]);
   } catch (error) {
     console.error("Failed to load pending signals", error);
     loadError = "Connect PostgreSQL and verify DATABASE_URL, then refresh the page.";
@@ -25,7 +28,7 @@ export default async function Home() {
 
   return (
     <AppShell title="Signal Inbox" subtitle="AI-detected signals from the market" contentClassName="signal-workspace-content" navigationCounts={navigationCounts} session={session}>
-      <SignalInbox initialSignals={signals} loadError={loadError} sources={sources} canReview={session.role === "marketer"} />
+      <SignalInbox initialSignals={signals} loadError={loadError} sources={sources} canReview={session.role === "marketer"} initialSavedViews={savedViews} />
     </AppShell>
   );
 }

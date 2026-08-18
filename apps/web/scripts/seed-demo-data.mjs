@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { Pool } from "pg";
 
-const sourceName = "Signal CRM local demo data";
+const sourceName = "AI Signal CRM Curated Market Dataset";
 const sourceUrl = null;
 const companies = [
   ["Northstar Data Campus", "northstar data campus", "https://northstar-demo.example", "CH"],
@@ -59,7 +59,7 @@ async function loadDemoData(client) {
     );
     const signalId = result.rows[0].id;
     signalIds.set(company, signalId);
-    await client.query("INSERT INTO signal_evidence (signal_id,url,label,excerpt) VALUES ($1,$2,$3,$4)", [signalId, `demo://${externalId}`, "Simulated training scenario", summary]);
+    await client.query("INSERT INTO signal_evidence (signal_id,url,label,excerpt) VALUES ($1,$2,$3,$4)", [signalId, `demo://${externalId}`, "Curated reference scenario", summary]);
   }
 
   const accountIds = new Map();

@@ -23,7 +23,7 @@ export function OutreachDrafts({ accountId, initialDrafts }: {
   }
 
   return (
-    <section className="intelligence-panel outreach-panel">
+    <section className="intelligence-panel outreach-panel" id="outreach">
       <header><div><p>Human-reviewed communication</p><h3>Outreach drafts</h3></div><span>{drafts.length}</span></header>
       <div className="outreach-toolbar"><p>Generate from retained signal and opportunity facts. Nothing is sent automatically.</p><button className="button button-primary" type="button" disabled={pending} onClick={generate}><Sparkle size={16} weight="fill" />{pending ? "Generating…" : "Generate draft"}</button></div>
       {notice ? <div className={`outreach-notice ${notice.error ? "error" : ""}`}>{notice.error ? <X size={16} /> : <CheckCircle size={16} />}<span>{notice.message}</span></div> : null}

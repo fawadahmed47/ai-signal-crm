@@ -16,15 +16,15 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
-import { logoutDemoAction } from "@/app/actions/demo-auth";
+import { logoutAction } from "@/app/actions/auth";
 
 const navigation = [
-  { label: "Inbox", icon: Tray, href: "/" },
-  { label: "Accounts", icon: Buildings, href: "/accounts" },
-  { label: "Opportunities", icon: Target, href: "/opportunities" },
-  { label: "Tasks", icon: CheckSquare },
-  { label: "Reports", icon: ChartBar, href: "/reports" },
-  { label: "Settings", icon: Gear },
+  { label: "Inbox", icon: Tray, href: "/", managerOnly: false },
+  { label: "Accounts", icon: Buildings, href: "/accounts", managerOnly: false },
+  { label: "Opportunities", icon: Target, href: "/opportunities", managerOnly: false },
+  { label: "Tasks", icon: CheckSquare, managerOnly: false },
+  { label: "Reports", icon: ChartBar, href: "/reports", managerOnly: true },
+  { label: "Settings", icon: Gear, managerOnly: false },
 ];
 
 type AppShellProps = {
@@ -60,7 +60,7 @@ export function AppShell({ title, subtitle, children, contentClassName, activeIt
         </div>
 
         <nav className="primary-nav">
-          {navigation.map(({ label, icon: Icon, href }) => href ? (
+          {navigation.filter((item) => !item.managerOnly || session?.role === "manager").map(({ label, icon: Icon, href }) => href ? (
             <Link
               className={activeItem === label ? "nav-item active" : "nav-item"}
               key={label}
@@ -113,7 +113,7 @@ export function AppShell({ title, subtitle, children, contentClassName, activeIt
               <span className="profile-copy"><strong>{session?.name ?? "Jamie Smith"}</strong><small>{session?.role === "manager" ? "Commercial Manager" : "Signal Reviewer"}</small></span>
               <CaretDown size={16} />
             </button>
-            {session ? <form action={logoutDemoAction}><button className="sign-out" type="submit">Sign out</button></form> : null}
+            {session ? <form action={logoutAction}><button className="sign-out" type="submit">Sign out</button></form> : null}
           </div>
         </header>
         <main className={`workspace-content ${contentClassName ?? ""}`} id="main-content">{children}</main>

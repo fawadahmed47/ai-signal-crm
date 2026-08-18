@@ -2,6 +2,7 @@ import { ArrowRight, Buildings, CurrencyDollar, Globe, Target, X } from "@phosph
 import Link from "next/link";
 
 import type { AccountListDTO } from "@/types/account";
+import { LifecyclePill } from "@/components/lifecycle-pill";
 
 function money(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
@@ -23,7 +24,7 @@ export function AccountDirectory({ accounts, loadError }: { accounts: AccountLis
               <div><dt><CurrencyDollar size={16} /> Pipeline</dt><dd>{money(account.pipelineValue)}</dd></div>
               <div><dt><Globe size={16} /> Market</dt><dd>{account.countryCode ?? "Not set"}</dd></div>
             </dl>
-            <footer><span className="lifecycle-pill">{account.lifecycleStage}</span><span>Open intelligence <ArrowRight size={14} /></span></footer>
+            <footer><LifecyclePill stage={account.lifecycleStage} /><span>Open intelligence <ArrowRight size={14} /></span></footer>
           </Link>
         ))}
       </div>

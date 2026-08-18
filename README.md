@@ -1,6 +1,6 @@
-# Signal CRM
+# AI Signal CRM
 
-Signal CRM is an AI-native commercial workspace that converts unstructured market signals into reviewed accounts, prioritized opportunities, outreach drafts, tasks, and native analytics.
+AI Signal CRM is an AI-native commercial workspace that converts unstructured market signals into reviewed accounts, prioritized opportunities, outreach drafts, tasks, and native analytics.
 
 ## Repository structure
 
@@ -34,9 +34,16 @@ pnpm.cmd dev
 
 The web application is available at `http://localhost:3000`. Its health endpoint is `/api/health`. PostgreSQL is available on `localhost:5432` by default.
 
-### Local demo data
+Local migrations seed two development-only users:
 
-Run `pnpm.cmd db:seed` to load four signals, three accounts, three opportunities, three tasks, and activity history for a local demo. Re-running it replaces only those demo records. Run `pnpm.cmd db:seed:clear` to remove them.
+- Commercial manager: `manager@aisignalcrm.local` / `Manager2026!`
+- Signal reviewer: `marketer@aisignalcrm.local` / `Marketer2026!`
+
+The ingestion worker can run once with `INGESTION_RUN_ONCE=true python services/ingestion/worker.py`, or continuously using `INGESTION_INTERVAL_SECONDS`. Every run is recorded in PostgreSQL for health and history reporting.
+
+### Local reference data
+
+Run `pnpm.cmd db:seed` to load four signals, three accounts, three opportunities, three tasks, and activity history for local reference testing. Re-running it replaces only those reference records. Run `pnpm.cmd db:seed:clear` to remove them.
 
 ## Delivery rules
 

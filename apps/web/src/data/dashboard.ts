@@ -18,6 +18,8 @@ export type IngestionSourceStatus = {
   lastImportedAt: string | null;
   totalSignals: number;
   pendingSignals: number;
+  lastRunStatus: "running" | "succeeded" | "failed" | null;
+  lastRunAt: string | null;
 };
 
 type CountRow = {
@@ -36,6 +38,8 @@ type SourceRow = {
   last_imported_at: Date | null;
   total_signals: number;
   pending_signals: number;
+  last_run_status: "running" | "succeeded" | "failed" | null;
+  last_run_at: Date | null;
 };
 
 export async function getNavigationCounts(): Promise<NavigationCounts> {
@@ -67,10 +71,16 @@ export async function getIngestionSourceStatuses(): Promise<IngestionSourceStatu
        ss.source_url,
        max(s.imported_at) AS last_imported_at,
        count(s.id)::int AS total_signals,
-       count(s.id) FILTER (WHERE s.status = 'pending')::int AS pending_signals
+       count(s.id) FILTER (WHERE s.status = 'pending')::int AS pending_signals,
+       latest_run.status AS last_run_status,
+       latest_run.started_at AS last_run_at
      FROM signal_sources ss
      LEFT JOIN signals s ON s.source_id = ss.id
-     GROUP BY ss.id, ss.name, ss.source_type, ss.source_url
+     LEFT JOIN LATERAL (
+       SELECT status,started_at FROM ingestion_runs
+       WHERE source_id=ss.id ORDER BY started_at DESC LIMIT 1
+     ) latest_run ON true
+     GROUP BY ss.id, ss.name, ss.source_type, ss.source_url, latest_run.status, latest_run.started_at
      ORDER BY max(s.imported_at) DESC NULLS LAST, ss.name`,
   );
   return result.rows.map((row) => ({
@@ -80,5 +90,7 @@ export async function getIngestionSourceStatuses(): Promise<IngestionSourceStatu
     lastImportedAt: row.last_imported_at?.toISOString() ?? null,
     totalSignals: row.total_signals,
     pendingSignals: row.pending_signals,
+    lastRunStatus: row.last_run_status,
+    lastRunAt: row.last_run_at?.toISOString() ?? null,
   }));
 }

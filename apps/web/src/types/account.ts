@@ -1,4 +1,5 @@
 import type { OpportunityStage } from "./opportunity";
+import type { CommercialLifecycleStage } from "./signal";
 
 export type AccountListDTO = {
   id: string;
@@ -6,7 +7,7 @@ export type AccountListDTO = {
   website: string | null;
   countryCode: string | null;
   ownerEmail: string;
-  lifecycleStage: string;
+  lifecycleStage: CommercialLifecycleStage;
   opportunityCount: number;
   pipelineValue: number;
   latestSignalAt: string | null;
@@ -20,7 +21,7 @@ export type AccountIntelligenceDTO = {
     countryCode: string | null;
   };
   ownerEmail: string;
-  lifecycleStage: string;
+  lifecycleStage: CommercialLifecycleStage;
   createdAt: string;
   originatingSignalId: string | null;
   signals: Array<{
@@ -29,6 +30,7 @@ export type AccountIntelligenceDTO = {
     category: string;
     summary: string;
     status: string;
+    lifecycleStage: CommercialLifecycleStage;
     score: number | null;
     explanation: string | null;
     occurredAt: string | null;
@@ -65,4 +67,6 @@ export type AccountIntelligenceDTO = {
     status: "open" | "in_progress" | "completed" | "cancelled";
     dueAt: string | null;
   }>;
+  contacts: Array<{ id: string; fullName: string; jobTitle: string | null; email: string | null; phone: string | null; createdAt: string }>;
+  notes: Array<{ id: string; body: string; authorName: string; createdAt: string }>;
 };

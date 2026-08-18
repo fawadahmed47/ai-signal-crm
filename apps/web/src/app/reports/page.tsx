@@ -6,12 +6,12 @@ import { AppShell } from "@/components/app-shell";
 import { getAnalyticsReport } from "@/data/analytics";
 import { getNavigationCounts } from "@/data/dashboard";
 import type { NavigationCounts } from "@/data/dashboard";
-import { getDemoSession } from "@/data/demo-session";
+import { getUserSession } from "@/data/auth-session";
 import type { AnalyticsReportDTO } from "@/types/analytics";
 
 export default async function ReportsPage() {
   await connection();
-  const session = await getDemoSession();
+  const session = await getUserSession();
   if (!session) redirect("/login");
   let report: AnalyticsReportDTO | undefined;
   let loadError: string | undefined;

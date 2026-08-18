@@ -11,7 +11,7 @@ import {
 } from "@/data/signal-review-core";
 import { saveSignalReview } from "@/data/signal-reviews";
 import { getCurrentActorEmail } from "@/data/runtime-config";
-import { getDemoSession } from "@/data/demo-session";
+import { getUserSession } from "@/data/auth-session";
 
 export type ReviewSignalActionResult = {
   ok: boolean;
@@ -22,7 +22,7 @@ export async function reviewSignalAction(
   value: ReviewSignalInput,
 ): Promise<ReviewSignalActionResult> {
   try {
-    const session = await getDemoSession();
+    const session = await getUserSession();
     if (session?.role === "manager") return { ok: false, message: "Manager access is read-only. Sign in as a marketer to review signals." };
     const input = parseReviewInput(value);
     const reviewerEmail = await getCurrentActorEmail();

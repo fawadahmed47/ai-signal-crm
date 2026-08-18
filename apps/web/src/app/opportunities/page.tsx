@@ -6,12 +6,12 @@ import { OpportunityWorkspace } from "@/components/opportunity-workspace";
 import { getOpportunityWorkspace } from "@/data/opportunities";
 import { getNavigationCounts } from "@/data/dashboard";
 import type { NavigationCounts } from "@/data/dashboard";
-import { getDemoSession } from "@/data/demo-session";
+import { getUserSession } from "@/data/auth-session";
 import type { OpportunityAccountDTO, OpportunityDTO } from "@/types/opportunity";
 
 export default async function OpportunitiesPage() {
   await connection();
-  const session = await getDemoSession();
+  const session = await getUserSession();
   if (!session) redirect("/login");
   let opportunities: OpportunityDTO[] = [];
   let accounts: OpportunityAccountDTO[] = [];

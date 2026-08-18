@@ -33,19 +33,20 @@ export function IngestionControl({ sources, loadError }: IngestionControlProps) 
       <div className="ingestion-control-copy">
         <span className="ingestion-icon"><Database size={19} weight="duotone" /></span>
         <div>
-          <p>Local market import</p>
+          <p>Market intelligence ingestion</p>
           <strong>{primarySource?.name ?? "No live source configured"}</strong>
           <small>{loadError ?? (primarySource ? `${primarySource.pendingSignals} awaiting review · ${formatImportedAt(primarySource.lastImportedAt)}` : "Run an import to populate the review queue.")}</small>
         </div>
       </div>
+      {primarySource?.lastRunStatus ? <span className={`ingestion-run-status ${primarySource.lastRunStatus}`}>Last run: {primarySource.lastRunStatus} · {formatImportedAt(primarySource.lastRunAt)}</span> : null}
       <div className="ingestion-actions">
         {primarySource?.sourceUrl ? <a href={primarySource.sourceUrl} target="_blank" rel="noreferrer" aria-label="Open configured feed"><ArrowSquareOut size={17} /></a> : null}
         <button className="import-button" type="button" onClick={runImport} disabled={isPending || Boolean(loadError)}>
           <ArrowsClockwise size={17} className={isPending ? "spinning" : ""} />
-          {isPending ? "Importing…" : "Run local import"}
+          {isPending ? "Importing…" : "Run ingestion"}
         </button>
       </div>
-      <p className="ingestion-footnote"><Clock size={13} /> Runs the configured RSS pipeline locally. Each detected signal retains its original evidence link for review.</p>
+      <p className="ingestion-footnote"><Clock size={13} /> Runs the configured RSS pipeline. Articles are deduplicated and retain their evidence links.</p>
       {notice ? <p className={`ingestion-notice ${notice.error ? "error" : ""}`} role="status">{notice.error ? <WarningCircle size={16} /> : <CheckCircle size={16} weight="fill" />}{notice.message}</p> : null}
     </section>
   );

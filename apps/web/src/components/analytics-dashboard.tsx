@@ -1,4 +1,4 @@
-import { ChartLineUp, CheckCircle, CurrencyDollar, Target, Tray } from "@phosphor-icons/react/dist/ssr";
+import { Buildings, ChartLineUp, CheckCircle, CurrencyDollar, LinkBreak, NotePencil, Target, Tray, UserCircle, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 import type { AnalyticsBreakdownDTO, AnalyticsReportDTO } from "@/types/analytics";
 
@@ -44,6 +44,17 @@ export function AnalyticsDashboard({ report, loadError }: { report?: AnalyticsRe
 
       {!hasData ? <section className="analytics-notice">Analytics are ready. Import and review signals to populate this report.</section> : null}
 
+      <section className="analytics-panel data-quality-panel" aria-labelledby="data-quality-title">
+        <header><div><p>Trust and completeness</p><h2 id="data-quality-title">Data quality</h2></div><span>Live checks across CRM records</span></header>
+        <div className="data-quality-grid">
+          <article><span><Buildings size={20} /></span><div><strong>{report.dataQuality.missingCompanyFields}</strong><small>Missing company fields</small></div></article>
+          <article><span><UserCircle size={20} /></span><div><strong>{report.dataQuality.missingContactFields}</strong><small>Missing contact fields</small></div></article>
+          <article><span><WarningCircle size={20} /></span><div><strong>{report.dataQuality.lowConfidenceLeads}</strong><small>Low-confidence leads</small></div></article>
+          <article><span><LinkBreak size={20} /></span><div><strong>{report.dataQuality.missingOrBrokenEvidence}</strong><small>Broken or missing evidence</small></div></article>
+          <article><span><NotePencil size={20} /></span><div><strong>{report.dataQuality.correctionsWaitingReview}</strong><small>Corrections waiting for review</small></div></article>
+        </div>
+      </section>
+
       <section className="analytics-grid">
         <article className="analytics-panel analytics-trend-panel">
           <header><div><p>Signal velocity</p><h2>Six-week intake</h2></div><span>Imported vs approved</span></header>
@@ -65,6 +76,10 @@ export function AnalyticsDashboard({ report, loadError }: { report?: AnalyticsRe
           <header><div><p>Review outcomes</p><h2>Signal status</h2></div><span>{report.summary.totalSignals} total</span></header>
           <Breakdown items={report.signalStatuses} />
         </article>
+
+        <article className="analytics-panel analytics-wide-panel"><header><div><p>Acquisition efficiency</p><h2>Source performance</h2></div><span>Lead-to-pipeline attribution</span></header><div className="analytics-table"><div className="analytics-table-head"><span>Source</span><span>Imported</span><span>Approved</span><span>Rate</span><span>Pipeline</span></div>{report.sourcePerformance.map((source)=><div key={source.source}><strong>{source.source}</strong><span>{source.imported}</span><span>{source.approved}</span><span>{source.approvalRate}%</span><span>{money.format(source.pipelineValue)}</span></div>)}</div></article>
+
+        <article className="analytics-panel analytics-wide-panel"><header><div><p>Team productivity</p><h2>Reviewer performance</h2></div><span>Human verification outcomes</span></header><div className="analytics-table reviewer"><div className="analytics-table-head"><span>Reviewer</span><span>Reviewed</span><span>Approved</span><span>Rate</span></div>{report.reviewerPerformance.map((reviewer)=><div key={reviewer.reviewer}><strong>{reviewer.reviewer}</strong><span>{reviewer.reviewed}</span><span>{reviewer.approved}</span><span>{reviewer.approvalRate}%</span></div>)}</div></article>
 
         <article className="analytics-panel">
           <header><div><p>Commercial progress</p><h2>Pipeline by stage</h2></div><span>Value and volume</span></header>

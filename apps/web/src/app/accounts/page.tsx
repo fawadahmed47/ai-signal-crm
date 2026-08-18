@@ -6,12 +6,12 @@ import { AppShell } from "@/components/app-shell";
 import { getAccounts } from "@/data/accounts";
 import { getNavigationCounts } from "@/data/dashboard";
 import type { NavigationCounts } from "@/data/dashboard";
-import { getDemoSession } from "@/data/demo-session";
+import { getUserSession } from "@/data/auth-session";
 import type { AccountListDTO } from "@/types/account";
 
 export default async function AccountsPage() {
   await connection();
-  const session = await getDemoSession();
+  const session = await getUserSession();
   if (!session) redirect("/login");
   let accounts: AccountListDTO[] = [];
   let loadError: string | undefined;

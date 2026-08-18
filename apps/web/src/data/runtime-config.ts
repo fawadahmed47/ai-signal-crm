@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getDemoSession } from "@/data/demo-session";
+import { getUserSession } from "@/data/auth-session";
 
 const localDemoActor = "jamie.smith@example.com";
 
@@ -10,7 +10,7 @@ const localDemoActor = "jamie.smith@example.com";
  * automatically loaded by the Next.js app directory.
  */
 export async function getCurrentActorEmail(): Promise<string | undefined> {
-  const session = await getDemoSession();
+  const session = await getUserSession();
   if (session) return session.email;
   const configured = process.env.REVIEWER_EMAIL?.trim();
   if (configured) return configured;

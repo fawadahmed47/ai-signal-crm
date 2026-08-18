@@ -87,7 +87,9 @@ export async function recordSignalReview(
     transactionOpen = true;
     const updated = await client.query<{ id: string; company_id: string | null }>(
       `UPDATE signals
-       SET status = $2, updated_at = now()
+       SET status = $2,
+           lifecycle_stage = CASE WHEN $2 = 'approved' THEN 'sales_accepted'::commercial_lifecycle_stage ELSE 'lost'::commercial_lifecycle_stage END,
+           updated_at = now()
        WHERE id = $1 AND status = 'pending'
        RETURNING id, company_id::text`,
       [input.signalId, input.decision],
@@ -122,8 +124,8 @@ export async function recordSignalReview(
     let accountCreated: boolean | undefined;
     if (input.decision === "approved" && companyId) {
       const insertedAccount = await client.query<{ id: string }>(
-        `INSERT INTO accounts (company_id, owner_email, created_from_signal_id)
-         VALUES ($1, $2, $3)
+        `INSERT INTO accounts (company_id, owner_email, created_from_signal_id, commercial_lifecycle_stage)
+         VALUES ($1, $2, $3, 'sales_accepted')
          ON CONFLICT (company_id) DO NOTHING
          RETURNING id::text`,
         [companyId, reviewerEmail, input.signalId],

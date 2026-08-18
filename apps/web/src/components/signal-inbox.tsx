@@ -10,6 +10,8 @@ import {
   Factory,
   FunnelSimple,
   Lightning,
+  MagnifyingGlass,
+  BookmarkSimple,
   NewspaperClipping,
   RocketLaunch,
   Sparkle,
@@ -19,8 +21,12 @@ import { useMemo, useState, useTransition } from "react";
 
 import { reviewSignalAction } from "@/app/actions/review-signal";
 import { assignSignalCompanyAction } from "@/app/actions/assign-signal-company";
+import { saveSignalViewAction } from "@/app/actions/save-signal-view";
 import { IngestionControl } from "@/components/ingestion-control";
+import { SignalCorrectionPanel } from "@/components/signal-correction-panel";
+import { LifecyclePill } from "@/components/lifecycle-pill";
 import type { IngestionSourceStatus } from "@/data/dashboard";
+import type { SavedSignalView } from "@/data/saved-views";
 import type { SignalInboxDTO } from "@/types/signal";
 
 type SignalInboxProps = {
@@ -28,6 +34,7 @@ type SignalInboxProps = {
   loadError?: string;
   sources: IngestionSourceStatus[];
   canReview: boolean;
+  initialSavedViews: SavedSignalView[];
 };
 
 function presentationFor(type: string) {
@@ -43,18 +50,26 @@ function presentationFor(type: string) {
   }
 }
 
-export function SignalInbox({ initialSignals, loadError, sources, canReview }: SignalInboxProps) {
+export function SignalInbox({ initialSignals, loadError, sources, canReview, initialSavedViews }: SignalInboxProps) {
   const [signals, setSignals] = useState(initialSignals);
   const [selectedId, setSelectedId] = useState<string | null>(initialSignals[0]?.id ?? null);
   const [sort, setSort] = useState<"newest" | "score">("newest");
   const [notice, setNotice] = useState<{ message: string; error: boolean } | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [minScore, setMinScore] = useState(0);
+  const [minInvestment, setMinInvestment] = useState(0);
+  const [viewName, setViewName] = useState("");
+  const [savedViews, setSavedViews] = useState(initialSavedViews);
   const [isPending, startTransition] = useTransition();
 
   const visibleSignals = useMemo(() => {
-    return sort === "score" ? [...signals].sort((a, b) => b.score - a.score) : signals;
-  }, [signals, sort]);
+    const query = search.trim().toLowerCase();
+    const filtered = signals.filter((signal) => (!query || `${signal.company} ${signal.headline} ${signal.location ?? ""}`.toLowerCase().includes(query)) && (!category || signal.type.toLowerCase() === category) && signal.score >= minScore && (signal.investmentUsdMillions ?? 0) >= minInvestment);
+    return sort === "score" ? [...filtered].sort((a, b) => b.score - a.score) : filtered;
+  }, [signals, sort, search, category, minScore, minInvestment]);
   const selected = signals.find((signal) => signal.id === selectedId) ?? visibleSignals[0];
 
   function resolveSignal(decision: "approved" | "rejected") {
@@ -84,8 +99,26 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview }: S
       const result = await assignSignalCompanyAction(selected.id, companyName);
       setNotice({ message: result.message, error: !result.ok });
       if (result.ok) {
-        setSignals((items) => items.map((item) => item.id === selected.id ? { ...item, company: result.companyName } : item));
+        setSignals((items) => items.map((item) => item.id === selected.id ? { ...item, company: result.companyName, lifecycleStage: result.lifecycleStage } : item));
         setCompanyName("");
+      }
+    });
+  }
+
+  function applySavedView(id: string) {
+    const view = savedViews.find((item) => item.id === id);
+    if (!view) return;
+    setSearch(view.filters.search); setCategory(view.filters.category); setMinScore(view.filters.minScore); setMinInvestment(view.filters.minInvestment);
+  }
+
+  function saveView() {
+    startTransition(async () => {
+      const filters = { search, category, minScore, minInvestment };
+      const result = await saveSignalViewAction(viewName, filters);
+      setNotice({ message: result.message, error: !result.ok });
+      if (result.ok) {
+        setSavedViews((items) => [...items.filter((item) => item.name !== viewName.trim()), { id: viewName.trim(), name: viewName.trim(), filters }].sort((a,b)=>a.name.localeCompare(b.name)));
+        setViewName("");
       }
     });
   }
@@ -124,6 +157,9 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview }: S
       <section className="signal-list-pane" aria-label="Detected signals">
         <div className="signal-list-tools">
           <IngestionControl sources={sources} loadError={loadError} />
+          <label className="signal-search"><MagnifyingGlass size={16} /><span className="sr-only">Search leads</span><input value={search} onChange={(event)=>setSearch(event.target.value)} placeholder="Search company, signal, location" /></label>
+          <div className="lead-filter-grid"><label><span>Category</span><select value={category} onChange={(event)=>setCategory(event.target.value)}><option value="">All categories</option><option value="construction">Construction</option><option value="expansion">Expansion</option><option value="investment">Investment</option><option value="ai infrastructure">AI infrastructure</option><option value="capacity expansion">Capacity expansion</option><option value="other">Other</option></select></label><label><span>Minimum score</span><input type="number" min="0" max="100" value={minScore} onChange={(event)=>setMinScore(Number(event.target.value))} /></label><label><span>Minimum $M</span><input type="number" min="0" value={minInvestment} onChange={(event)=>setMinInvestment(Number(event.target.value))} /></label></div>
+          <div className="saved-view-row"><select aria-label="Apply saved view" defaultValue="" onChange={(event)=>applySavedView(event.target.value)}><option value="">Saved views</option>{savedViews.map((view)=><option key={view.id} value={view.id}>{view.name}</option>)}</select><input aria-label="Saved view name" value={viewName} onChange={(event)=>setViewName(event.target.value)} placeholder="View name" /><button type="button" onClick={saveView} disabled={isPending || viewName.trim().length < 2}><BookmarkSimple size={15} /> Save</button></div>
           <div className="signal-sort-row">
             <label>
               <span className="sr-only">Sort signals</span>
@@ -163,6 +199,7 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview }: S
                 <span className="signal-card-copy">
                   <strong>{signal.company}</strong>
                   <span>{signal.headline}</span>
+                  <LifecyclePill stage={signal.lifecycleStage} />
                 </span>
                 <span className="signal-card-meta">
                   <small>{signal.age}</small>
@@ -185,6 +222,7 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview }: S
         <header className="signal-detail-header">
           <div className="signal-detail-topline">
             <span className="detected-pill"><span /> AI-detected signal</span>
+            <LifecyclePill stage={selected.lifecycleStage} />
             <span className="signal-age">{selected.age}</span>
             <button className="icon-button" type="button" aria-label="More signal actions">
               <DotsThree size={22} weight="bold" />
@@ -255,6 +293,7 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview }: S
             </label>
             <small>{reviewNote.length}/1,000 characters</small>
           </section>
+          {canReview ? <SignalCorrectionPanel key={selected.id} signal={selected} onCorrected={(corrected) => setSignals((items) => items.map((item) => item.id === selected.id ? { ...item, ...corrected } : item))} /> : null}
         </div>
         <footer className="review-actions">
           <button className="approve-button" type="button" disabled={isPending || !canReview} onClick={() => resolveSignal("approved")}>

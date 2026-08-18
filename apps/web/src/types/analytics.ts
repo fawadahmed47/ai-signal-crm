@@ -25,5 +25,14 @@ export type AnalyticsReportDTO = {
   pipelineStages: AnalyticsBreakdownDTO[];
   taskHealth: AnalyticsBreakdownDTO[];
   weeklyTrend: AnalyticsTrendDTO[];
+  sourcePerformance: Array<{ source: string; imported: number; approved: number; approvalRate: number; pipelineValue: number }>;
+  reviewerPerformance: Array<{ reviewer: string; reviewed: number; approved: number; approvalRate: number }>;
+  dataQuality: {
+    missingCompanyFields: number;
+    missingContactFields: number;
+    lowConfidenceLeads: number;
+    missingOrBrokenEvidence: number;
+    correctionsWaitingReview: number;
+  };
   generatedAt: string;
 };
