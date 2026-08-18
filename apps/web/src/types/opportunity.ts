@@ -11,6 +11,7 @@ export type OpportunityDTO = {
   ownerEmail: string;
   expectedCloseDate: string | null;
   updatedAt: string;
+  weightedValue: number;
 };
 
 export type OpportunityAccountDTO = {

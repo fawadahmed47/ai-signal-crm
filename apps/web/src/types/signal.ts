@@ -29,4 +29,10 @@ export type SignalInboxDTO = {
   why: string;
   evidence: SignalEvidenceDTO[];
   lifecycleStage: CommercialLifecycleStage;
+  scoreBreakdown: {
+    category: number;
+    investment: number;
+    powerCapacity: number;
+    evidence: number;
+  };
 };

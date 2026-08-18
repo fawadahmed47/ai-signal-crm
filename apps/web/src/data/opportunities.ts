@@ -52,6 +52,7 @@ export async function getOpportunityWorkspace(): Promise<{
       ownerEmail: row.owner_email,
       expectedCloseDate: row.expected_close_date,
       updatedAt: row.updated_at.toISOString(),
+      weightedValue: (row.amount_usd === null ? 0 : Number(row.amount_usd)) * (row.probability ?? 0) / 100,
     })),
     accounts: accounts.rows.map((row) => ({ id: row.id, companyName: row.company_name })),
   };

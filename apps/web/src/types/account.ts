@@ -33,6 +33,8 @@ export type AccountIntelligenceDTO = {
     lifecycleStage: CommercialLifecycleStage;
     score: number | null;
     explanation: string | null;
+    powerCapacityMw: number | null;
+    investmentUsdMillions: number | null;
     occurredAt: string | null;
     evidence: Array<{ title: string; url: string }>;
   }>;
@@ -55,9 +57,10 @@ export type AccountIntelligenceDTO = {
     id: string;
     subject: string;
     body: string;
-    status: "draft" | "archived";
+    status: "draft" | "sent" | "archived";
     generatedByEmail: string;
     createdAt: string;
+    sentAt: string | null;
   }>;
   tasks: Array<{
     id: string;
@@ -67,6 +70,6 @@ export type AccountIntelligenceDTO = {
     status: "open" | "in_progress" | "completed" | "cancelled";
     dueAt: string | null;
   }>;
-  contacts: Array<{ id: string; fullName: string; jobTitle: string | null; email: string | null; phone: string | null; createdAt: string }>;
+  contacts: Array<{ id: string; fullName: string; jobTitle: string | null; email: string | null; phone: string | null; stakeholderRole: "decision_maker" | "procurement" | "facilities" | "engineering" | "finance" | "champion" | "other"; engagementStatus: "identified" | "contacted" | "replied" | "meeting_booked" | "not_a_fit"; lastContactedAt: string | null; nextFollowUpAt: string | null; createdAt: string }>;
   notes: Array<{ id: string; body: string; authorName: string; createdAt: string }>;
 };
