@@ -13,7 +13,7 @@ export async function getAccounts(): Promise<AccountListDTO[]> {
     website: string | null;
     country_code: string | null;
     owner_email: string;
-    lifecycle_stage: string;
+    commercial_lifecycle_stage: AccountListDTO["lifecycleStage"];
     opportunity_count: string;
     pipeline_value: string;
     latest_signal_at: Date | null;
@@ -27,7 +27,7 @@ export async function getAccounts(): Promise<AccountListDTO[]> {
        FROM signals GROUP BY company_id
      )
      SELECT a.id::text, c.canonical_name AS company_name, c.website, c.country_code,
-            a.owner_email, a.lifecycle_stage,
+            a.owner_email, a.commercial_lifecycle_stage,
             COALESCE(o.opportunity_count, 0)::text AS opportunity_count,
             COALESCE(o.pipeline_value, 0)::text AS pipeline_value,
             s.latest_signal_at
@@ -44,7 +44,7 @@ export async function getAccounts(): Promise<AccountListDTO[]> {
     website: row.website,
     countryCode: row.country_code,
     ownerEmail: row.owner_email,
-    lifecycleStage: row.lifecycle_stage,
+    lifecycleStage: row.commercial_lifecycle_stage,
     opportunityCount: Number(row.opportunity_count),
     pipelineValue: Number(row.pipeline_value),
     latestSignalAt: row.latest_signal_at?.toISOString() ?? null,
@@ -61,12 +61,12 @@ export async function getAccountIntelligence(id: string): Promise<AccountIntelli
     website: string | null;
     country_code: string | null;
     owner_email: string;
-    lifecycle_stage: string;
+    commercial_lifecycle_stage: AccountIntelligenceDTO["lifecycleStage"];
     created_at: Date;
     created_from_signal_id: string | null;
   }>(
     `SELECT a.id::text, a.company_id::text, c.canonical_name AS company_name,
-            c.website, c.country_code, a.owner_email, a.lifecycle_stage,
+            c.website, c.country_code, a.owner_email, a.commercial_lifecycle_stage,
             a.created_at, a.created_from_signal_id::text
      FROM accounts a
      JOIN companies c ON c.id = a.company_id
@@ -76,19 +76,20 @@ export async function getAccountIntelligence(id: string): Promise<AccountIntelli
   if (!accountResult.rowCount) return null;
   const account = accountResult.rows[0];
 
-  const [signals, opportunities, tasks, activities, outreachDrafts] = await Promise.all([
+  const [signals, opportunities, contacts, notes, tasks, activities, outreachDrafts] = await Promise.all([
     pool.query<{
       id: string;
       title: string;
       category: string;
       summary: string;
       status: string;
+      lifecycle_stage: AccountIntelligenceDTO["signals"][number]["lifecycleStage"];
       opportunity_score: number | null;
       score_explanation: string | null;
       occurred_at: Date | null;
       evidence: Array<{ title: string; url: string }> | null;
     }>(
-      `SELECT s.id::text, s.title, s.category, s.summary, s.status::text,
+      `SELECT s.id::text, s.title, s.category, s.summary, s.status::text, s.lifecycle_stage,
               s.opportunity_score, s.score_explanation,
               COALESCE(s.occurred_at, s.published_at, s.imported_at) AS occurred_at,
               COALESCE(jsonb_agg(jsonb_build_object(
@@ -115,6 +116,8 @@ export async function getAccountIntelligence(id: string): Promise<AccountIntelli
        ORDER BY updated_at DESC`,
       [id],
     ),
+    pool.query<{ id:string;full_name:string;job_title:string|null;email:string|null;phone:string|null;created_at:Date }>("SELECT id::text,full_name,job_title,email,phone,created_at FROM account_contacts WHERE account_id=$1 ORDER BY is_primary DESC,created_at DESC",[id]),
+    pool.query<{ id:string;body:string;author_name:string|null;created_at:Date }>("SELECT n.id::text,n.body,u.display_name AS author_name,n.created_at FROM account_notes n LEFT JOIN app_users u ON u.id=n.author_user_id WHERE n.account_id=$1 ORDER BY n.created_at DESC",[id]),
     pool.query<{
       id:string; title:string; description:string|null; assignee_email:string;
       status:AccountIntelligenceDTO["tasks"][number]["status"]; due_at:Date|null;
@@ -157,7 +160,7 @@ export async function getAccountIntelligence(id: string): Promise<AccountIntelli
       countryCode: account.country_code,
     },
     ownerEmail: account.owner_email,
-    lifecycleStage: account.lifecycle_stage,
+    lifecycleStage: account.commercial_lifecycle_stage,
     createdAt: account.created_at.toISOString(),
     originatingSignalId: account.created_from_signal_id,
     signals: signals.rows.map((signal) => ({
@@ -166,6 +169,7 @@ export async function getAccountIntelligence(id: string): Promise<AccountIntelli
       category: signal.category,
       summary: signal.summary,
       status: signal.status,
+      lifecycleStage: signal.lifecycle_stage,
       score: signal.opportunity_score,
       explanation: signal.score_explanation,
       occurredAt: signal.occurred_at?.toISOString() ?? null,
@@ -196,5 +200,7 @@ export async function getAccountIntelligence(id: string): Promise<AccountIntelli
     })),
     tasks: tasks.rows.map((task) => ({ id:task.id,title:task.title,description:task.description,
       assigneeEmail:task.assignee_email,status:task.status,dueAt:task.due_at?.toISOString() ?? null })),
+    contacts: contacts.rows.map((contact)=>({id:contact.id,fullName:contact.full_name,jobTitle:contact.job_title,email:contact.email,phone:contact.phone,createdAt:contact.created_at.toISOString()})),
+    notes: notes.rows.map((note)=>({id:note.id,body:note.body,authorName:note.author_name??"Former user",createdAt:note.created_at.toISOString()})),
   };
 }

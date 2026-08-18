@@ -6,6 +6,8 @@
   "scripts": {
     "db:up": "docker compose up -d postgres",
     "db:migrate": "docker compose --profile tools run --rm migrate",
+    "db:seed": "pnpm --filter @signal-crm/web exec node scripts/seed-demo-data.mjs",
+    "db:seed:clear": "pnpm --filter @signal-crm/web exec node scripts/seed-demo-data.mjs --clear",
     "db:down": "docker compose down",
     "dev": "pnpm --filter @signal-crm/web dev",
     "build": "pnpm --filter @signal-crm/web build",

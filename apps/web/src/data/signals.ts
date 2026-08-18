@@ -2,6 +2,7 @@ import "server-only";
 
 import { getDatabasePool } from "@/data/db";
 import type { SignalEvidenceDTO, SignalInboxDTO } from "@/types/signal";
+import type { CommercialLifecycleStage } from "@/types/signal";
 
 type SignalRow = {
   id: string;
@@ -10,8 +11,13 @@ type SignalRow = {
   score: number | null;
   category: string;
   score_explanation: string | null;
+  power_capacity_mw: string | null;
+  investment_usd_millions: string | null;
+  location_text: string | null;
+  is_demo: boolean;
   detected_at: Date;
   evidence: Array<{ title: string; url: string }> | null;
+  lifecycle_stage: CommercialLifecycleStage;
 };
 
 function formatDetected(value: Date): string {
@@ -54,6 +60,11 @@ export async function getPendingSignals(limit = 100): Promise<SignalInboxDTO[]> 
        s.opportunity_score AS score,
        s.category,
        s.score_explanation,
+       s.power_capacity_mw::text,
+       s.investment_usd_millions::text,
+       s.location_text,
+       s.lifecycle_stage,
+       COALESCE((s.raw_payload ->> 'demo')::boolean, false) AS is_demo,
        COALESCE(s.published_at, s.imported_at) AS detected_at,
        COALESCE(
          jsonb_agg(
@@ -81,6 +92,7 @@ export async function getPendingSignals(limit = 100): Promise<SignalInboxDTO[]> 
       title: item.title,
       publisher: publisherFor(item.url),
       url: item.url,
+      isDemo: row.is_demo,
     }));
     return {
       id: row.id,
@@ -89,10 +101,14 @@ export async function getPendingSignals(limit = 100): Promise<SignalInboxDTO[]> 
       score,
       confidence: confidenceFor(score),
       type: row.category.charAt(0).toUpperCase() + row.category.slice(1),
+      powerCapacityMw: row.power_capacity_mw === null ? null : Number(row.power_capacity_mw),
+      investmentUsdMillions: row.investment_usd_millions === null ? null : Number(row.investment_usd_millions),
+      location: row.location_text,
       detected: formatDetected(row.detected_at),
       age: formatAge(row.detected_at, now),
       why: row.score_explanation ?? "No evidence-based explanation is available yet.",
       evidence,
+      lifecycleStage: row.lifecycle_stage,
     };
   });
 }
