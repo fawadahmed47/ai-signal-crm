@@ -87,8 +87,8 @@ export async function recordSignalReview(
     transactionOpen = true;
     const updated = await client.query<{ id: string; company_id: string | null }>(
       `UPDATE signals
-       SET status = $2,
-           lifecycle_stage = CASE WHEN $2 = 'approved' THEN 'sales_accepted'::commercial_lifecycle_stage ELSE 'lost'::commercial_lifecycle_stage END,
+       SET status = $2::signal_status,
+           lifecycle_stage = CASE WHEN $2::signal_status = 'approved'::signal_status THEN 'sales_accepted'::commercial_lifecycle_stage ELSE 'lost'::commercial_lifecycle_stage END,
            updated_at = now()
        WHERE id = $1 AND status = 'pending'
        RETURNING id, company_id::text`,
