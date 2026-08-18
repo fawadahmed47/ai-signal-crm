@@ -10,6 +10,7 @@ import {
   type SaveOpportunityInput,
 } from "@/data/opportunity-core";
 import { persistOpportunity } from "@/data/opportunities";
+import { getCurrentActorEmail } from "@/data/runtime-config";
 
 export type SaveOpportunityActionResult = { ok: boolean; message: string };
 
@@ -18,7 +19,7 @@ export async function saveOpportunityAction(
 ): Promise<SaveOpportunityActionResult> {
   try {
     const input = parseOpportunityInput(value);
-    const ownerEmail = process.env.REVIEWER_EMAIL?.trim();
+    const ownerEmail = await getCurrentActorEmail();
     if (!ownerEmail) return { ok: false, message: "The server owner identity is not configured." };
 
     const result = await persistOpportunity(input, ownerEmail);

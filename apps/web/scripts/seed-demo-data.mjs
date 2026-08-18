@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { Pool } from "pg";
 
 const sourceName = "Signal CRM local demo data";
-const sourceUrl = "https://demo.signal-crm.local/signals";
+const sourceUrl = null;
 const companies = [
   ["Northstar Data Campus", "northstar data campus", "https://northstar-demo.example", "CH"],
   ["Helio Compute", "helio compute", "https://helio-demo.example", "DE"],
@@ -19,7 +19,7 @@ async function getDatabaseUrl() {
 }
 
 async function clearDemoData(client) {
-  const source = await client.query("SELECT id FROM signal_sources WHERE name=$1 AND source_url=$2", [sourceName, sourceUrl]);
+  const source = await client.query("SELECT id FROM signal_sources WHERE name=$1", [sourceName]);
   if (!source.rowCount) return;
   const sourceId = source.rows[0].id;
   await client.query(
@@ -59,7 +59,7 @@ async function loadDemoData(client) {
     );
     const signalId = result.rows[0].id;
     signalIds.set(company, signalId);
-    await client.query("INSERT INTO signal_evidence (signal_id,url,label,excerpt) VALUES ($1,$2,$3,$4)", [signalId, `https://demo.signal-crm.local/evidence/${externalId}`, "Demo market evidence", summary]);
+    await client.query("INSERT INTO signal_evidence (signal_id,url,label,excerpt) VALUES ($1,$2,$3,$4)", [signalId, `demo://${externalId}`, "Simulated training scenario", summary]);
   }
 
   const accountIds = new Map();

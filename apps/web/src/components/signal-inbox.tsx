@@ -18,11 +18,16 @@ import {
 import { useMemo, useState, useTransition } from "react";
 
 import { reviewSignalAction } from "@/app/actions/review-signal";
+import { assignSignalCompanyAction } from "@/app/actions/assign-signal-company";
+import { IngestionControl } from "@/components/ingestion-control";
+import type { IngestionSourceStatus } from "@/data/dashboard";
 import type { SignalInboxDTO } from "@/types/signal";
 
 type SignalInboxProps = {
   initialSignals: SignalInboxDTO[];
   loadError?: string;
+  sources: IngestionSourceStatus[];
+  canReview: boolean;
 };
 
 function presentationFor(type: string) {
@@ -38,12 +43,13 @@ function presentationFor(type: string) {
   }
 }
 
-export function SignalInbox({ initialSignals, loadError }: SignalInboxProps) {
+export function SignalInbox({ initialSignals, loadError, sources, canReview }: SignalInboxProps) {
   const [signals, setSignals] = useState(initialSignals);
   const [selectedId, setSelectedId] = useState<string | null>(initialSignals[0]?.id ?? null);
   const [sort, setSort] = useState<"newest" | "score">("newest");
   const [notice, setNotice] = useState<{ message: string; error: boolean } | null>(null);
   const [reviewNote, setReviewNote] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const visibleSignals = useMemo(() => {
@@ -72,19 +78,36 @@ export function SignalInbox({ initialSignals, loadError }: SignalInboxProps) {
     });
   }
 
+  function confirmCompany() {
+    if (!selected || isPending) return;
+    startTransition(async () => {
+      const result = await assignSignalCompanyAction(selected.id, companyName);
+      setNotice({ message: result.message, error: !result.ok });
+      if (result.ok) {
+        setSignals((items) => items.map((item) => item.id === selected.id ? { ...item, company: result.companyName } : item));
+        setCompanyName("");
+      }
+    });
+  }
+
   if (!selected) {
     return (
-      <section className={`signal-empty ${loadError ? "error" : ""}`}>
-        {loadError ? <X size={42} /> : <CheckCircle size={42} weight="duotone" />}
-        <h2>{loadError ? "Signal inbox unavailable" : "Inbox cleared"}</h2>
-        <p>{loadError ?? "There are no unreviewed signals left in this view."}</p>
-      </section>
+      <div className="signal-empty-wrap">
+        <IngestionControl sources={sources} loadError={loadError} />
+        <section className={`signal-empty ${loadError ? "error" : ""}`}>
+          {loadError ? <X size={42} /> : <CheckCircle size={42} weight="duotone" />}
+          <h2>{loadError ? "Signal inbox unavailable" : "Inbox cleared"}</h2>
+          <p>{loadError ?? "There are no unreviewed signals left in this view."}</p>
+        </section>
+      </div>
     );
   }
 
   const selectedPresentation = presentationFor(selected.type);
   const SelectedIcon = selectedPresentation.icon;
   const opportunityLevel = selected.score >= 75 ? "High" : selected.score >= 45 ? "Medium" : "Low";
+  const money = selected.investmentUsdMillions === null ? "Not reported" : `$${selected.investmentUsdMillions.toLocaleString("en-US")}M`;
+  const capacity = selected.powerCapacityMw === null ? "Not reported" : `${selected.powerCapacityMw.toLocaleString("en-US")} MW`;
 
   return (
     <div className="signal-inbox">
@@ -100,6 +123,7 @@ export function SignalInbox({ initialSignals, loadError }: SignalInboxProps) {
 
       <section className="signal-list-pane" aria-label="Detected signals">
         <div className="signal-list-tools">
+          <IngestionControl sources={sources} loadError={loadError} />
           <div className="signal-sort-row">
             <label>
               <span className="sr-only">Sort signals</span>
@@ -172,6 +196,8 @@ export function SignalInbox({ initialSignals, loadError }: SignalInboxProps) {
             <div className="metric"><span>Opportunity score</span><div><strong>{selected.score}</strong><em>{opportunityLevel}</em></div></div>
             <div className="metric"><span>Signal type</span><div><SelectedIcon size={20} /><strong>{selected.type}</strong></div></div>
             <div className="metric"><span>Detected</span><div><strong>{selected.detected}</strong></div></div>
+            <div className="metric commercial-value"><span>Potential investment</span><div><strong>{money}</strong><em>Reported value</em></div></div>
+            <div className="metric commercial-value"><span>Capacity need</span><div><strong>{capacity}</strong><em>Reported MW</em></div></div>
           </div>
         </header>
 
@@ -191,29 +217,38 @@ export function SignalInbox({ initialSignals, loadError }: SignalInboxProps) {
               <div><dt>Approval result</dt><dd>Create or reuse account</dd></div>
               <div><dt>Evidence records</dt><dd>{selected.evidence.length}</dd></div>
             </dl>
+            {selected.company === "Unidentified company" && canReview ? <div className="company-correction"><label><span>Confirm company</span><input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Nvidia" /></label><button type="button" onClick={confirmCompany} disabled={isPending || !companyName.trim()}>Save match</button></div> : null}
           </section>
           <section className="detail-card evidence-card">
             <h3>Source evidence</h3>
             {selected.evidence.length ? (
               <div className="evidence-list">
                 {selected.evidence.map((source) => (
-                  <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>
-                    <span className="source-mark"><NewspaperClipping size={16} weight="duotone" /></span>
-                    <span><strong>{source.title}</strong><small>{source.publisher} · {selected.detected}</small></span>
-                    <ArrowSquareOut size={18} />
-                  </a>
+                  source.isDemo ? (
+                    <div className="demo-evidence" key={source.url}>
+                      <span className="source-mark"><NewspaperClipping size={16} weight="duotone" /></span>
+                      <span><strong>Internal sample scenario</strong><small>This sample has no external news article. Use a Data Center Dynamics card for a live source.</small></span>
+                    </div>
+                  ) : (
+                    <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>
+                      <span className="source-mark"><NewspaperClipping size={16} weight="duotone" /></span>
+                      <span><strong>{source.title}</strong><small>{source.publisher} · {selected.detected}</small></span>
+                      <ArrowSquareOut size={18} />
+                    </a>
+                  )
                 ))}
               </div>
             ) : <p>No retained evidence URL is available for this signal.</p>}
           </section>
           <section className="detail-card assignment-card review-feedback-card">
             <h3>Review feedback</h3>
-            <p>Record why this signal should proceed or be dismissed. A note is required for dismissal.</p>
+            <p>{canReview ? "Record why this signal should proceed or be dismissed. A note is required for dismissal." : "Manager view is read-only. Sign in as a marketer to verify and review signals."}</p>
             <label>
               <span>Review note</span>
               <textarea
                 value={reviewNote}
                 maxLength={1_000}
+                disabled={!canReview}
                 placeholder="Add evidence corrections or decision context"
                 onChange={(event) => setReviewNote(event.target.value)}
               />
@@ -222,10 +257,10 @@ export function SignalInbox({ initialSignals, loadError }: SignalInboxProps) {
           </section>
         </div>
         <footer className="review-actions">
-          <button className="approve-button" type="button" disabled={isPending} onClick={() => resolveSignal("approved")}>
+          <button className="approve-button" type="button" disabled={isPending || !canReview} onClick={() => resolveSignal("approved")}>
             <Check size={21} weight="bold" /> {isPending ? "Creating account…" : "Approve & create account"}
           </button>
-          <button className="dismiss-button" type="button" disabled={isPending || !reviewNote.trim()} onClick={() => resolveSignal("rejected")}>
+          <button className="dismiss-button" type="button" disabled={isPending || !reviewNote.trim() || !canReview} onClick={() => resolveSignal("rejected")}>
             <X size={21} /> Dismiss
           </button>
         </footer>

@@ -3,10 +3,11 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { generateOutreachDraft } from "@/data/outreach";
+import { getCurrentActorEmail } from "@/data/runtime-config";
 
 export async function generateOutreachAction(accountId: string) {
   try {
-    const generatedBy = process.env.REVIEWER_EMAIL?.trim();
+    const generatedBy = await getCurrentActorEmail();
     if (!generatedBy) return { ok: false as const, message: "The server user identity is not configured." };
     const result = await generateOutreachDraft(accountId, generatedBy);
     if (result.status === "account_not_found") return { ok: false as const, message: "This account no longer exists." };

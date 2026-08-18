@@ -16,6 +16,8 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
+import { logoutDemoAction } from "@/app/actions/demo-auth";
+
 const navigation = [
   { label: "Inbox", icon: Tray, href: "/" },
   { label: "Accounts", icon: Buildings, href: "/accounts" },
@@ -31,17 +33,26 @@ type AppShellProps = {
   children: React.ReactNode;
   contentClassName?: string;
   activeItem?: string;
+  navigationCounts?: {
+    allSignals: number;
+    highOpportunity: number;
+    accounts: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+  session?: { name: string; email: string; role: "manager" | "marketer" };
 };
 
-export function AppShell({ title, subtitle, children, contentClassName, activeItem = "Inbox" }: AppShellProps) {
+export function AppShell({ title, subtitle, children, contentClassName, activeItem = "Inbox", navigationCounts, session }: AppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="app-frame">
       <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`} aria-label="Primary navigation">
         <div className="brand-row">
-          <a className="brand" href="#main-content" aria-label="Signal Workspace home">
-            <strong>Signal</strong><span>Workspace</span>
+          <a className="brand" href="#main-content" aria-label="AI Signal CRM home">
+            <strong>AI Signal</strong><span>CRM</span>
           </a>
           <button className="icon-button mobile-only" type="button" aria-label="Close navigation" onClick={() => setMenuOpen(false)}>
             <X size={22} />
@@ -68,12 +79,12 @@ export function AppShell({ title, subtitle, children, contentClassName, activeIt
 
         <div className="smart-filters">
           <p>Smart filters</p>
-          <button type="button"><span>All signals</span><strong>12</strong></button>
-          <button type="button"><span>High opportunity</span><strong>5</strong></button>
-          <button type="button"><span>My accounts</span><strong>7</strong></button>
-          <button type="button"><span>Unreviewed</span><strong>12</strong></button>
-          <button type="button"><span>Approved</span><strong>18</strong></button>
-          <button type="button"><span>Dismissed</span><strong>9</strong></button>
+          <button type="button"><span>All signals</span><strong>{navigationCounts?.allSignals ?? "—"}</strong></button>
+          <button type="button"><span>High opportunity</span><strong>{navigationCounts?.highOpportunity ?? "—"}</strong></button>
+          <button type="button"><span>My accounts</span><strong>{navigationCounts?.accounts ?? "—"}</strong></button>
+          <button type="button"><span>Unreviewed</span><strong>{navigationCounts?.pending ?? "—"}</strong></button>
+          <button type="button"><span>Approved</span><strong>{navigationCounts?.approved ?? "—"}</strong></button>
+          <button type="button"><span>Dismissed</span><strong>{navigationCounts?.rejected ?? "—"}</strong></button>
         </div>
 
         <div className="help-card">
@@ -95,12 +106,14 @@ export function AppShell({ title, subtitle, children, contentClassName, activeIt
           </div>
           <div className="topbar-actions">
             <span className="date"><CalendarBlank size={18} /> 15 August 2026</span>
+            {session?.role === "manager" ? <a className="export-link" href="/api/exports/signals.csv">Export cleaned CSV</a> : null}
             <button className="icon-button" type="button" aria-label="Notifications"><Bell size={21} /></button>
             <button className="profile-button" type="button" aria-label="Open profile menu">
-              <span className="avatar">JS</span>
-              <span className="profile-copy"><strong>Jamie Smith</strong><small>Sales Operator</small></span>
+              <span className="avatar">{session?.name.split(" ").map((name) => name[0]).join("") ?? "JS"}</span>
+              <span className="profile-copy"><strong>{session?.name ?? "Jamie Smith"}</strong><small>{session?.role === "manager" ? "Commercial Manager" : "Signal Reviewer"}</small></span>
               <CaretDown size={16} />
             </button>
+            {session ? <form action={logoutDemoAction}><button className="sign-out" type="submit">Sign out</button></form> : null}
           </div>
         </header>
         <main className={`workspace-content ${contentClassName ?? ""}`} id="main-content">{children}</main>
