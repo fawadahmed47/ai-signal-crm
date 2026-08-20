@@ -6,7 +6,7 @@ import type { CommercialLifecycleStage } from "@/types/signal";
 
 type SignalRow = {
   id: string;
-  company: string;
+  company: string | null;
   headline: string;
   score: number | null;
   category: string;
@@ -20,6 +20,22 @@ type SignalRow = {
   lifecycle_stage: CommercialLifecycleStage;
   score_components: Record<string, number> | null;
 };
+
+const COMPANY_ACTION_PATTERN = /^([A-Z][\p{L}\p{N}&.'’\-]*(?:\s+(?:[A-Z][\p{L}\p{N}&.'’\-]*|and|&)){0,5}?)\s+(?:seeks|raises|establishes|plans|completes|unveils|reveals|secures|signs|starts|announces|acquires|opens|builds|breaks\s+ground|withdraws|plots|uses|use|occupied|rumored)/iu;
+const POSSESSIVE_COMPANY_PATTERN = /^([A-Z][\p{L}\p{N}&.'’\-]*)['’]s\s+/u;
+const GENERIC_COMPANY_LABELS = new Set([
+  "plans", "new", "data", "state", "twenty", "enterprise", "efficiency", "riding", "is", "the", "a", "an", "norwegian developer", "state owned real estate group",
+]);
+
+function companySuggestedByHeadline(headline: string): string | null {
+  const source = headline.trim();
+  const possessive = source.match(POSSESSIVE_COMPANY_PATTERN)?.[1];
+  const candidate = possessive ?? source.match(COMPANY_ACTION_PATTERN)?.[1];
+  if (!candidate) return null;
+  const cleaned = candidate.replace(/[\s\-–—]+$/u, "").trim();
+  if (!cleaned || GENERIC_COMPANY_LABELS.has(cleaned.toLowerCase())) return null;
+  return cleaned;
+}
 
 function formatDetected(value: Date): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -56,7 +72,7 @@ export async function getPendingSignals(limit = 100): Promise<SignalInboxDTO[]> 
   const result = await getDatabasePool().query<SignalRow>(
     `SELECT
        s.id::text,
-       COALESCE(c.canonical_name, 'Unidentified company') AS company,
+       c.canonical_name AS company,
        s.title AS headline,
        s.opportunity_score AS score,
        s.category,
@@ -90,6 +106,8 @@ export async function getPendingSignals(limit = 100): Promise<SignalInboxDTO[]> 
 
   return result.rows.map((row) => {
     const score = row.score ?? 0;
+    const confirmedCompany = row.company?.trim() || null;
+    const suggestedCompany = confirmedCompany ? null : companySuggestedByHeadline(row.headline);
     const evidence: SignalEvidenceDTO[] = (row.evidence ?? []).map((item) => ({
       title: item.title,
       publisher: publisherFor(item.url),
@@ -98,7 +116,8 @@ export async function getPendingSignals(limit = 100): Promise<SignalInboxDTO[]> 
     }));
     return {
       id: row.id,
-      company: row.company,
+      company: confirmedCompany ?? suggestedCompany ?? "Company verification needed",
+      companyMatch: confirmedCompany ? "matched" : suggestedCompany ? "suggested" : "needs_verification",
       headline: row.headline,
       score,
       confidence: confidenceFor(score),

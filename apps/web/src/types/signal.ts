@@ -17,6 +17,7 @@ export type CommercialLifecycleStage =
 export type SignalInboxDTO = {
   id: string;
   company: string;
+  companyMatch: "matched" | "suggested" | "needs_verification";
   headline: string;
   score: number;
   confidence: "High" | "Medium" | "Low";

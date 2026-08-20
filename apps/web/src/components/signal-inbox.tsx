@@ -99,7 +99,7 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview, ini
       const result = await assignSignalCompanyAction(selected.id, companyName);
       setNotice({ message: result.message, error: !result.ok });
       if (result.ok) {
-        setSignals((items) => items.map((item) => item.id === selected.id ? { ...item, company: result.companyName, lifecycleStage: result.lifecycleStage } : item));
+        setSignals((items) => items.map((item) => item.id === selected.id ? { ...item, company: result.companyName, companyMatch: "matched", lifecycleStage: result.lifecycleStage } : item));
         setCompanyName("");
       }
     });
@@ -235,7 +235,7 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview, ini
               <DotsThree size={22} weight="bold" />
             </button>
           </div>
-          <h2>{selected.company} {selected.headline.charAt(0).toLowerCase() + selected.headline.slice(1)}</h2>
+          <h2>{selected.headline}</h2>
           <div className="signal-metrics">
             <div className="metric"><span>Confidence</span><div><strong>{selected.confidence}</strong><b className="score-ring">{selected.score}</b></div></div>
             <div className="metric"><span>Opportunity score</span><div><strong>{selected.score}</strong><em>{opportunityLevel}</em></div></div>
@@ -262,14 +262,14 @@ export function SignalInbox({ initialSignals, loadError, sources, canReview, ini
             <h3>Company match</h3>
             <div className="account-heading">
               <span className={`company-mark ${selectedPresentation.tone}`}><SelectedIcon size={24} weight="fill" /></span>
-              <div><strong>{selected.company}</strong><span className="pending-label">Pending human review</span></div>
+              <div><strong>{selected.company}</strong><span className="pending-label">{selected.companyMatch === "matched" ? "Confirmed company match" : selected.companyMatch === "suggested" ? "Suggested from article headline — verify" : "Company verification needed"}</span></div>
             </div>
             <dl>
               <div><dt>Review status</dt><dd>Unreviewed</dd></div>
               <div><dt>Approval result</dt><dd>Create or reuse account</dd></div>
               <div><dt>Evidence records</dt><dd>{selected.evidence.length}</dd></div>
             </dl>
-            {selected.company === "Unidentified company" && canReview ? <div className="company-correction"><label><span>Confirm company</span><input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Nvidia" /></label><button type="button" onClick={confirmCompany} disabled={isPending || !companyName.trim()}>Save match</button></div> : null}
+            {selected.companyMatch !== "matched" && canReview ? <div className="company-correction"><label><span>Confirm company</span><input value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="e.g. Nvidia" /></label><button type="button" onClick={confirmCompany} disabled={isPending || !companyName.trim()}>Save match</button></div> : null}
           </section>
           <section className="detail-card evidence-card">
             <h3>Source evidence</h3>
